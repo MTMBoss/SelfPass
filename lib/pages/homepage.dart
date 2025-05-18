@@ -6,6 +6,11 @@ import '../widgets/search_field.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_drawer.dart';
 import '../widgets/custom_bottom_navigation_bar.dart';
+import 'web_account_page.dart';
+import 'credit_card_page.dart';
+import 'id_passport_page.dart';
+import 'note_page.dart';
+import 'another_page.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -174,35 +179,60 @@ class _HomepageState extends State<Homepage> {
             backgroundColor: Colors.orange,
             label: 'Web Account',
             labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WebAccountPage()),
+              );
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.credit_card),
             backgroundColor: Colors.orange,
             label: 'Credit Card',
             labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreditCardPage()),
+              );
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.badge),
             backgroundColor: Colors.orange,
             label: 'ID/Passport',
             labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const IDPassportPage()),
+              );
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.note),
             backgroundColor: Colors.orange,
             label: 'Note',
             labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotePage()),
+              );
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.more_horiz),
             backgroundColor: Colors.orange,
             label: 'Another',
             labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AnotherPage()),
+              );
+            },
           ),
         ],
       ),
