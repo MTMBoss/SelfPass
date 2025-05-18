@@ -161,7 +161,8 @@ class _HomepageState extends State<Homepage> {
         elevation: 4,
         child: const Icon(Icons.add, size: 40),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // Modificata la posizione del FAB a destra
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onItemSelected: (index) {
