@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../models/account.dart';
 import '../widgets/account_list.dart';
 import '../widgets/search_field.dart';
@@ -152,14 +153,58 @@ class _HomepageState extends State<Homepage> {
       appBar: const CustomAppBar(),
       backgroundColor: Colors.white,
       body: _buildContent(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Azione per aggiungere un nuovo account
-        },
-        shape: const CircleBorder(),
+      floatingActionButton: SpeedDial(
+        icon: Icons.add,
+        activeIcon: Icons.close,
         backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        activeBackgroundColor: Colors.blue,
+        activeForegroundColor: Colors.white,
+        buttonSize: const Size(56, 56),
+        visible: true,
+        closeManually: false,
+        curve: Curves.easeInOut,
+        overlayColor: Colors.black,
+        overlayOpacity: 0.5,
         elevation: 4,
-        child: const Icon(Icons.add, size: 40),
+        shape: const CircleBorder(),
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.language),
+            backgroundColor: Colors.orange,
+            label: 'Web Account',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () {},
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.credit_card),
+            backgroundColor: Colors.orange,
+            label: 'Credit Card',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () {},
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.badge),
+            backgroundColor: Colors.orange,
+            label: 'ID/Passport',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () {},
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.note),
+            backgroundColor: Colors.orange,
+            label: 'Note',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () {},
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.more_horiz),
+            backgroundColor: Colors.orange,
+            label: 'Another',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () {},
+          ),
+        ],
       ),
       // Modificata la posizione del FAB a destra
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

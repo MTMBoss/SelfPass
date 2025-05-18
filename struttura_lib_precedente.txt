@@ -1,0 +1,653 @@
+
+### Aggiornato il 05/18/2025 17:26:57 ###
+
+Elenco del percorso delle cartelle
+Numero di serie del volume: 6EB3-501E
+C:\PROGRAMMAZIONE\SELFPASS\LIB
+|   main.dart
+|   
++---models
+|       account.dart
+|       
++---pages
+|       homepage.dart
+|       
+\---widgets
+        account_card.dart
+        account_list.dart
+        custom_app_bar.dart
+        custom_bottom_navigation_bar.dart
+        custom_drawer.dart
+        search_field.dart
+        
+
+C:\Programmazione\selfpass\lib\main.dart:
+import 'package:flutter/material.dart';
+import 'pages/homepage.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'SelfPass',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const Homepage(),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\models\account.dart:
+class Account {
+  final String accountName;
+  final String username;
+  final String password;
+  // Nuovo campo per indicare se l'account è tra i preferiti:
+  bool isFavorite;
+
+  Account({
+    required this.accountName,
+    required this.username,
+    required this.password,
+    this.isFavorite = false,
+  });
+}
+
+
+C:\Programmazione\selfpass\lib\pages\homepage.dart:
+import 'package:flutter/material.dart';
+import '../models/account.dart';
+import '../widgets/account_list.dart';
+import '../widgets/search_field.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/custom_drawer.dart';
+import '../widgets/custom_bottom_navigation_bar.dart';
+
+class Homepage extends StatefulWidget {
+  const Homepage({super.key});
+
+  @override
+  State<Homepage> createState() => _HomepageState();
+}
+
+class _HomepageState extends State<Homepage> {
+  // Lista di account d'esempio (isFavorite inizialmente false)
+  final List<Account> accounts = [
+    Account(
+      accountName: 'Google',
+      username: 'user@gmail.com',
+      password: '••••••',
+    ),
+    Account(
+      accountName: 'Facebook',
+      username: 'user@facebook.com',
+      password: '••••••',
+    ),
+    Account(
+      accountName: 'Twitter',
+      username: 'user@twitter.com',
+      password: '••••••',
+    ),
+    Account(
+      accountName: 'Instagram',
+      username: 'user@instagram.com',
+      password: '••••••',
+    ),
+  ];
+
+  // Calcola la lista dei preferiti basandosi sul flag isFavorite dell'account
+  List<Account> get favoriteAccounts =>
+      accounts.where((account) => account.isFavorite).toList();
+
+  // Stato della query di ricerca
+  String _searchQuery = '';
+
+  // Getter per filtrare gli account in base alla query (case-insensitive)
+  List<Account> get filteredAccounts =>
+      _searchQuery.isEmpty
+          ? accounts
+          : accounts.where((account) {
+            return account.accountName.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ||
+                account.username.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                );
+          }).toList();
+
+  List<Account> get filteredFavoriteAccounts =>
+      _searchQuery.isEmpty
+          ? favoriteAccounts
+          : favoriteAccounts.where((account) {
+            return account.accountName.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ||
+                account.username.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                );
+          }).toList();
+
+  // Funzione per alternare il flag isFavorite
+  void toggleFavorite(Account account) {
+    setState(() {
+      account.isFavorite = !account.isFavorite;
+    });
+  }
+
+  // Costruisce il contenuto in base all'indice selezionato
+  Widget _buildContent() {
+    return IndexedStack(
+      index: _selectedIndex,
+      children: [
+        Column(
+          children: [
+            SearchField(
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
+            Expanded(
+              child: AccountList(
+                accounts: filteredAccounts,
+                searchQuery: _searchQuery,
+                onFavoriteToggle: toggleFavorite,
+              ),
+            ),
+          ],
+        ),
+        Column(
+          children: [
+            SearchField(
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
+            Expanded(
+              child: AccountList(
+                accounts: filteredFavoriteAccounts,
+                searchQuery: _searchQuery,
+                onFavoriteToggle: toggleFavorite,
+              ),
+            ),
+          ],
+        ),
+        Column(
+          children: const [
+            SearchField(),
+            Expanded(child: Center(child: Text('Pagina delle impostazioni'))),
+          ],
+        ),
+        Column(
+          children: const [
+            SearchField(),
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Pagina Biglietti',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Indice della pagina attualmente visualizzata:
+  // 0 -> Tutti gli account; 1 -> Preferiti; 2 -> Impostazioni
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: const CustomDrawer(),
+      appBar: const CustomAppBar(),
+      backgroundColor: Colors.white,
+      body: _buildContent(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Azione per aggiungere un nuovo account
+        },
+        shape: const CircleBorder(),
+        backgroundColor: Colors.blue,
+        elevation: 4,
+        child: const Icon(Icons.add, size: 40),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: CustomBottomNavigationBar(
+        selectedIndex: _selectedIndex,
+        onItemSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\account_card.dart:
+import 'package:flutter/material.dart';
+import '../models/account.dart';
+
+class AccountCard extends StatelessWidget {
+  final Account account;
+  final String searchQuery;
+  // Callback per la gestione della pressione della stella:
+  final VoidCallback onFavoriteToggle;
+
+  const AccountCard({
+    super.key,
+    required this.account,
+    required this.searchQuery,
+    required this.onFavoriteToggle,
+  });
+
+  // Metodo che evidenzia le occorrenze della query nel testo
+  List<TextSpan> _highlightOccurrences(String text, String query) {
+    if (query.isEmpty) {
+      return [TextSpan(text: text)];
+    }
+
+    final List<TextSpan> spans = [];
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    int start = 0;
+    int index = lowerText.indexOf(lowerQuery);
+
+    while (index != -1) {
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index)));
+      }
+      // Occorrenza trovata evidenziata
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + query.length),
+          style: const TextStyle(backgroundColor: Colors.yellow),
+        ),
+      );
+      start = index + query.length;
+      index = lowerText.indexOf(lowerQuery, start);
+    }
+    if (start < text.length) {
+      spans.add(TextSpan(text: text.substring(start)));
+    }
+    return spans;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        title: RichText(
+          text: TextSpan(
+            style: DefaultTextStyle.of(
+              context,
+            ).style.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+            children: _highlightOccurrences(account.accountName, searchQuery),
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RichText(
+              text: TextSpan(
+                style: DefaultTextStyle.of(
+                  context,
+                ).style.copyWith(fontSize: 14),
+                children: _highlightOccurrences(
+                  'Username: ${account.username}',
+                  searchQuery,
+                ),
+              ),
+            ),
+            RichText(
+              text: TextSpan(
+                style: DefaultTextStyle.of(
+                  context,
+                ).style.copyWith(fontSize: 14),
+                children: _highlightOccurrences(
+                  'Password: ${account.password}',
+                  searchQuery,
+                ),
+              ),
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: Icon(
+            // Icona piena se l'account è tra i preferiti, altrimenti solo il bordo
+            account.isFavorite ? Icons.star : Icons.star_border,
+            color: account.isFavorite ? Colors.amber : Colors.grey,
+          ),
+          onPressed: onFavoriteToggle,
+        ),
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\account_list.dart:
+import 'package:flutter/material.dart';
+import '../models/account.dart';
+import 'account_card.dart';
+
+class AccountList extends StatelessWidget {
+  final List<Account> accounts;
+  final String searchQuery;
+  final ValueChanged<Account> onFavoriteToggle;
+
+  const AccountList({
+    super.key,
+    required this.accounts,
+    required this.searchQuery,
+    required this.onFavoriteToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: accounts.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final account = accounts[index];
+        return AccountCard(
+          account: account,
+          searchQuery: searchQuery,
+          onFavoriteToggle: () => onFavoriteToggle(account),
+        );
+      },
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\custom_app_bar.dart:
+import 'package:flutter/material.dart';
+
+class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const CustomAppBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      title: const Text(
+        'SelfPass',
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      leading: Builder(
+        builder:
+            (context) => IconButton(
+              icon: const Icon(Icons.menu, color: Colors.black),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+      ),
+      actions: [
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            // Handle dropdown menu actions based on selected option
+            if (value == 'Opzione 1') {
+              // Action for Option 1
+            } else if (value == 'Opzione 2') {
+              // Action for Option 2
+            }
+          },
+          icon: const Icon(Icons.more_vert, color: Colors.black),
+          itemBuilder:
+              (BuildContext context) => const [
+                PopupMenuItem<String>(
+                  value: 'Opzione 1',
+                  child: Text('Opzione 1'),
+                ),
+                PopupMenuItem<String>(
+                  value: 'Opzione 2',
+                  child: Text('Opzione 2'),
+                ),
+              ],
+        ),
+      ],
+      backgroundColor: Colors.white,
+      elevation: 0.0,
+      centerTitle: true,
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\custom_bottom_navigation_bar.dart:
+import 'package:flutter/material.dart';
+
+class CustomBottomNavigationBar extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onItemSelected;
+
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.selectedIndex,
+    required this.onItemSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomAppBar(
+      notchMargin: 8.0,
+      child: Container(
+        height: 60,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.apps, color: Colors.black),
+              onPressed: () => onItemSelected(0),
+            ),
+            IconButton(
+              icon: const Icon(Icons.favorite, color: Colors.black),
+              onPressed: () => onItemSelected(1),
+            ),
+            IconButton(
+              icon: const Icon(Icons.confirmation_num, color: Colors.black),
+              onPressed: () => onItemSelected(3),
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings, color: Colors.black),
+              onPressed: () => onItemSelected(2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\custom_drawer.dart:
+import 'package:flutter/material.dart';
+
+class CustomDrawer extends StatelessWidget {
+  const CustomDrawer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: const [
+          DrawerHeader(
+            decoration: BoxDecoration(color: Colors.blue),
+            child: Center(
+              child: Text(
+                'Header',
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+            ),
+          ),
+          ListTile(title: Text('Item 1')),
+          ListTile(title: Text('Item 2')),
+        ],
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\search_field.dart:
+import 'package:flutter/material.dart';
+
+class SearchField extends StatelessWidget {
+  final ValueChanged<String>? onChanged;
+
+  const SearchField({super.key, this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 40, left: 20, right: 20),
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xff1D1617).withAlpha((0.11 * 255).round()),
+            blurRadius: 20,
+            spreadRadius: 0.0,
+          ),
+        ],
+      ),
+      child: TextField(
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.all(15),
+          hintText: 'Search',
+          hintStyle: const TextStyle(color: Color(0xffB7B7B7), fontSize: 16),
+          prefixIcon: const Padding(
+            padding: EdgeInsets.all(12),
+            child: Icon(Icons.search, size: 24, color: Color(0xffB7B7B7)),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+Contenuto di pubspec.yaml:
+name: selfpass
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+  flutter_svg: ^2.1.0
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^5.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  fonts:
+     - family: Poppins
+       fonts:
+         - asset: fonts/Poppins-Bold.ttf
+           weight: 700
+         - asset: fonts/Poppins-Medium.ttf
+           weight: 500
+         - asset: fonts/Poppins-Regular.ttf
+           weight: 400
+         - asset: fonts/Poppins-SemiBold.ttf
+           weight: 600
+
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
+
