@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "inputs": [
+        {
+            "id": "commitMessage",
+            "type": "promptString",
+            "description": "Inserisci il messaggio di commit",
+            "default": "Aggiornamento"
+        }
+    ],
+    "tasks": [
+        {
+            "label": "Git: add, commit e push",
+            "type": "shell",
+            "command": "git add . && git commit -m '${input:commitMessage}' && git push",
+            "problemMatcher": []
+        }
+    ]
+}
