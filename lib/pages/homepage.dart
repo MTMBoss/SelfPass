@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:logger/logger.dart';
 import '../models/account.dart';
 import '../widgets/account_list.dart';
 import '../widgets/search_field.dart';
@@ -19,7 +19,10 @@ class Homepage extends StatefulWidget {
   State<Homepage> createState() => _HomepageState();
 }
 
-class _HomepageState extends State<Homepage> {
+class _HomepageState extends State<Homepage>
+    with SingleTickerProviderStateMixin {
+  final Logger logger = Logger();
+
   // Lista di account d'esempio (isFavorite inizialmente false)
   final List<Account> accounts = [
     Account(
@@ -151,6 +154,108 @@ class _HomepageState extends State<Homepage> {
   // 0 -> Tutti gli account; 1 -> Preferiti; 2 -> Impostazioni
   int _selectedIndex = 0;
 
+  late AnimationController _animationController;
+  bool _isMenuOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleMenu() {
+    if (_isMenuOpen) {
+      _animationController.reverse();
+    } else {
+      _animationController.forward();
+    }
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+    });
+  }
+
+  Future<void> _navigateTo(Widget page) async {
+    _toggleMenu();
+    if (!mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (BuildContext context) => page),
+    );
+  }
+
+  Widget _buildMenuOption(IconData icon, String label, Widget page) {
+    return GestureDetector(
+      onTap: () => _navigateTo(page),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.orange,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orange.withAlpha(150),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenu() {
+    return Positioned(
+      bottom: 80,
+      right: 16,
+      child: FadeTransition(
+        opacity: _animationController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildMenuOption(
+              Icons.language,
+              'Web Account',
+              const WebAccountPage(),
+            ),
+            _buildMenuOption(
+              Icons.credit_card,
+              'Credit Card',
+              const CreditCardPage(),
+            ),
+            _buildMenuOption(
+              Icons.badge,
+              'ID/Passport',
+              const IDPassportPage(),
+            ),
+            _buildMenuOption(Icons.note, 'Note', const NotePage()),
+            _buildMenuOption(Icons.more_horiz, 'Another', const AnotherPage()),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,86 +263,53 @@ class _HomepageState extends State<Homepage> {
       appBar: const CustomAppBar(),
       backgroundColor: Colors.white,
       body: _buildContent(),
-      floatingActionButton: SpeedDial(
-        icon: Icons.add,
-        activeIcon: Icons.close,
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        activeBackgroundColor: Colors.blue,
-        activeForegroundColor: Colors.white,
-        buttonSize: const Size(56, 56),
-        visible: true,
-        closeManually: false,
-        curve: Curves.easeInOut,
-        overlayColor: Colors.black,
-        overlayOpacity: 0.5,
-        elevation: 4,
-        shape: const CircleBorder(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Stack(
         children: [
-          SpeedDialChild(
-            child: const Icon(Icons.language),
-            backgroundColor: Colors.orange,
-            label: 'Web Account',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WebAccountPage()),
-              );
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.credit_card),
-            backgroundColor: Colors.orange,
-            label: 'Credit Card',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CreditCardPage()),
-              );
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.badge),
-            backgroundColor: Colors.orange,
-            label: 'ID/Passport',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const IDPassportPage()),
-              );
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.note),
-            backgroundColor: Colors.orange,
-            label: 'Note',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const NotePage()),
-              );
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.more_horiz),
-            backgroundColor: Colors.orange,
-            label: 'Another',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AnotherPage()),
-              );
-            },
+          if (_isMenuOpen) _buildMenu(),
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _toggleMenu,
+              backgroundColor: Colors.blue,
+              shape: const CircleBorder(),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return RotationTransition(
+                    turns:
+                        child.key == const ValueKey('icon1')
+                            ? Tween<double>(
+                              begin: 0.75,
+                              end: 1.0,
+                            ).animate(animation)
+                            : Tween<double>(
+                              begin: 1.0,
+                              end: 0.75,
+                            ).animate(animation),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child:
+                    _isMenuOpen
+                        ? const Icon(
+                          Icons.close,
+                          key: ValueKey('icon2'),
+                          color: Colors.white,
+                          size: 28,
+                        )
+                        : const Icon(
+                          Icons.add,
+                          key: ValueKey('icon1'),
+                          color: Colors.white,
+                          size: 28,
+                        ),
+              ),
+            ),
           ),
         ],
       ),
-      // Modificata la posizione del FAB a destra
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onItemSelected: (index) {

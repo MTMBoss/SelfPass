@@ -1,5 +1,5 @@
 
-### Aggiornato il 05/18/2025 17:26:57 ###
+### Aggiornato il 05/18/2025 22:55:41 ###
 
 Elenco del percorso delle cartelle
 Numero di serie del volume: 6EB3-501E
@@ -225,7 +225,8 @@ class _HomepageState extends State<Homepage> {
         elevation: 4,
         child: const Icon(Icons.add, size: 40),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // Modificata la posizione del FAB a destra
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onItemSelected: (index) {
@@ -560,6 +561,7 @@ class SearchField extends StatelessWidget {
 
 
 Contenuto di pubspec.yaml:
+
 name: selfpass
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
@@ -597,6 +599,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.1.0
+  flutter_speed_dial: ^7.0.0
 
 
 dev_dependencies:
