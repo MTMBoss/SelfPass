@@ -26,6 +26,8 @@ class WebAccountPageState extends State<WebAccountPage> {
   String _generatedPasswordType =
       'Random'; // Options: Memorizable, Numbers, Random, Letters+Numbers
   String _generatedPassword = '';
+  final TextEditingController _generatedPasswordController =
+      TextEditingController();
 
   // Additional fields
   List<Widget> additionalFields = [];
@@ -110,108 +112,180 @@ class WebAccountPageState extends State<WebAccountPage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Password Generator',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
+        int localLength = _generatedPasswordLength;
+        String localType = _generatedPasswordType;
+        String localPassword = _generatedPassword;
+        final TextEditingController localPasswordController =
+            TextEditingController(text: localPassword);
 
-                // Password length slider
-                Row(
+        void localGeneratePassword() {
+          final length = localLength;
+          final type = localType;
+          const letters = 'abcdefghijklmnopqrstuvwxyz';
+          const numbers = '0123456789';
+          const symbols = '!@#\$%^&*()-_=+[]{}|;:,.<>?';
+
+          String chars = '';
+          switch (type) {
+            case 'Memorizable':
+              chars = 'aeioulnrst';
+              break;
+            case 'Numbers':
+              chars = numbers;
+              break;
+            case 'Random':
+              chars = letters + letters.toUpperCase() + numbers + symbols;
+              break;
+            case 'Letters+Numbers':
+              chars = letters + letters.toUpperCase() + numbers;
+              break;
+            default:
+              chars = letters + letters.toUpperCase() + numbers + symbols;
+          }
+
+          final rand =
+              List.generate(length, (index) {
+                final idx =
+                    (DateTime.now().millisecondsSinceEpoch + index) %
+                    chars.length;
+                return chars[idx];
+              }).join();
+
+          localPassword = rand;
+          localPasswordController.text = localPassword;
+        }
+
+        localGeneratePassword();
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Length:'),
-                    Expanded(
-                      child: Slider(
-                        value: _generatedPasswordLength.toDouble(),
-                        min: 8,
-                        max: 64,
-                        divisions: 56,
-                        label: _generatedPasswordLength.toString(),
-                        onChanged: (value) {
-                          setState(() {
-                            _generatedPasswordLength = value.toInt();
-                          });
-                        },
+                    const Text(
+                      'Password Generator',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ],
-                ),
+                    const SizedBox(height: 16),
 
-                // Password type dropdown
-                DropdownButton<String>(
-                  value: _generatedPasswordType,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'Memorizable',
-                      child: Text('Memorizable'),
+                    // Password length slider
+                    Row(
+                      children: [
+                        const Text('Length:'),
+                        Expanded(
+                          child: Slider(
+                            value: localLength.toDouble(),
+                            min: 8,
+                            max: 64,
+                            divisions: 56,
+                            label: localLength.toString(),
+                            onChanged: (value) {
+                              setState(() {
+                                localLength = value.toInt();
+                                localGeneratePassword();
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                    DropdownMenuItem(value: 'Numbers', child: Text('Numbers')),
-                    DropdownMenuItem(value: 'Random', child: Text('Random')),
-                    DropdownMenuItem(
-                      value: 'Letters+Numbers',
-                      child: Text('Letters+Numbers'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _generatedPasswordType = value;
-                      });
-                    }
-                  },
-                ),
 
-                const SizedBox(height: 16),
-
-                // Generated password display
-                SelectableText(
-                  _generatedPassword.isEmpty
-                      ? 'Press Generate'
-                      : _generatedPassword,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _generatePassword,
-                      child: const Text('Generate'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        _passwordController.text = _generatedPassword;
-                        Navigator.of(context).pop();
+                    // Password type dropdown
+                    DropdownButton<String>(
+                      value: localType,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Memorizable',
+                          child: Text('Memorizable'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Numbers',
+                          child: Text('Numbers'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Random',
+                          child: Text('Random'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Letters+Numbers',
+                          child: Text('Letters+Numbers'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            localType = value;
+                            localGeneratePassword();
+                          });
+                        }
                       },
-                      child: const Text('OK'),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Cancel'),
+
+                    const SizedBox(height: 16),
+
+                    // Generated password display
+                    TextField(
+                      controller: localPasswordController,
+                      readOnly: false,
+                      decoration: const InputDecoration(
+                        border: UnderlineInputBorder(),
+                        hintText: 'Generated password will appear here',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            localGeneratePassword();
+                            setState(() {});
+                          },
+                          child: const Text('Generate'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            _passwordController.text =
+                                localPasswordController.text;
+                            setState(() {
+                              _generatedPasswordLength = localLength;
+                              _generatedPasswordType = localType;
+                              _generatedPassword = localPasswordController.text;
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('OK'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Cancel'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -514,11 +588,11 @@ class WebAccountPageState extends State<WebAccountPage> {
         margin: const EdgeInsets.all(24),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey[900],
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
-              color: Colors.black54,
+              color: Colors.black26,
               blurRadius: 10,
               offset: Offset(0, 4),
             ),
@@ -528,47 +602,112 @@ class WebAccountPageState extends State<WebAccountPage> {
           color: Colors.transparent,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Password Generator',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                'Generate Password',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFd4b87a),
+                ),
               ),
               const SizedBox(height: 16),
 
-              // Password length slider
+              // Password display with refresh icon
               Row(
                 children: [
-                  const Text('Length:'),
                   Expanded(
-                    child: Slider(
-                      value: _generatedPasswordLength.toDouble(),
-                      min: 8,
-                      max: 64,
-                      divisions: 56,
-                      label: _generatedPasswordLength.toString(),
-                      onChanged: (value) {
-                        setState(() {
-                          _generatedPasswordLength = value.toInt();
-                        });
-                      },
+                    child: TextField(
+                      controller: _generatedPasswordController,
+                      readOnly: false,
+                      decoration: const InputDecoration(
+                        border: UnderlineInputBorder(),
+                        hintText: 'Generated password will appear here',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Color(0xFFd4b87a)),
+                    onPressed: () {
+                      _generatePassword();
+                      _generatedPasswordController.text = _generatedPassword;
+                    },
                   ),
                 ],
               ),
 
-              // Password type dropdown
+              const SizedBox(height: 8),
+
+              // Password strength segmented bar
+              Row(
+                children: List.generate(4, (index) {
+                  Color color;
+                  if (_passwordStrength >= (index + 1) * 0.25) {
+                    color = Colors.green;
+                  } else if (_passwordStrength > index * 0.25) {
+                    color = Colors.lightGreen;
+                  } else {
+                    color = Colors.grey[300]!;
+                  }
+                  return Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      height: 6,
+                      color: color,
+                    ),
+                  );
+                }),
+              ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                'Crack time: $_passwordCrackTime',
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Password length slider with label below
+              Slider(
+                value: _generatedPasswordLength.toDouble(),
+                min: 8,
+                max: 64,
+                divisions: 56,
+                label: _generatedPasswordLength.toString(),
+                onChanged: (value) {
+                  setState(() {
+                    _generatedPasswordLength = value.toInt();
+                    _generatePassword();
+                    _generatedPasswordController.text = _generatedPassword;
+                  });
+                },
+              ),
+              Center(child: Text('Length: $_generatedPasswordLength')),
+
+              const SizedBox(height: 16),
+
+              // Password type dropdown with updated options
               DropdownButton<String>(
                 value: _generatedPasswordType,
                 items: const [
                   DropdownMenuItem(
-                    value: 'Memorizable',
-                    child: Text('Memorizable'),
+                    value: 'Memorable',
+                    child: Text('Memorable'),
                   ),
-                  DropdownMenuItem(value: 'Numbers', child: Text('Numbers')),
+                  DropdownMenuItem(
+                    value: 'Letters and numbers',
+                    child: Text('Letters and numbers'),
+                  ),
                   DropdownMenuItem(value: 'Random', child: Text('Random')),
                   DropdownMenuItem(
-                    value: 'Letters+Numbers',
-                    child: Text('Letters+Numbers'),
+                    value: 'Numbers only',
+                    child: Text('Numbers only'),
                   ),
                 ],
                 onChanged: (value) {
@@ -582,34 +721,24 @@ class WebAccountPageState extends State<WebAccountPage> {
 
               const SizedBox(height: 16),
 
-              // Generated password display
-              SelectableText(
-                _generatedPassword.isEmpty
-                    ? 'Press Generate'
-                    : _generatedPassword,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Buttons
+              // OK and Cancel buttons aligned to bottom right
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  ElevatedButton(
-                    onPressed: _generatePassword,
-                    child: const Text('Generate'),
+                  TextButton(
+                    onPressed: _closePasswordGenerator,
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.black54),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: _applyGeneratedPassword,
                     child: const Text('OK'),
-                  ),
-                  ElevatedButton(
-                    onPressed: _closePasswordGenerator,
-                    child: const Text('Cancel'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFd4b87a),
+                    ),
                   ),
                 ],
               ),
