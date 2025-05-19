@@ -735,10 +735,10 @@ class WebAccountPageState extends State<WebAccountPage> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: _applyGeneratedPassword,
-                    child: const Text('OK'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFd4b87a),
                     ),
+                    child: const Text('OK'),
                   ),
                 ],
               ),
