@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import '../models/account.dart';
-import '../widgets/account_list.dart';
-import '../widgets/search_field.dart';
 import '../widgets/custom_app_bar.dart';
-import '../widgets/custom_drawer.dart';
 import '../widgets/custom_bottom_navigation_bar.dart';
-import 'web_account_page.dart';
-import 'credit_card_page.dart';
-import 'id_passport_page.dart';
-import 'note_page.dart';
-import 'another_page.dart';
+import '../widgets/custom_drawer.dart';
+import '../widgets/floating_menu.dart';
+import 'homepage_tabs/all_accounts_tab.dart';
+import 'homepage_tabs/favorites_tab.dart';
+import 'homepage_tabs/settings_tab.dart';
+import 'homepage_tabs/tickets_tab.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -86,72 +84,6 @@ class _HomepageState extends State<Homepage>
     });
   }
 
-  // Costruisce il contenuto in base all'indice selezionato
-  Widget _buildContent() {
-    return IndexedStack(
-      index: _selectedIndex,
-      children: [
-        Column(
-          children: [
-            SearchField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-            Expanded(
-              child: AccountList(
-                accounts: filteredAccounts,
-                searchQuery: _searchQuery,
-                onFavoriteToggle: toggleFavorite,
-              ),
-            ),
-          ],
-        ),
-        Column(
-          children: [
-            SearchField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-            Expanded(
-              child: AccountList(
-                accounts: filteredFavoriteAccounts,
-                searchQuery: _searchQuery,
-                onFavoriteToggle: toggleFavorite,
-              ),
-            ),
-          ],
-        ),
-        Column(
-          children: const [
-            SearchField(),
-            Expanded(child: Center(child: Text('Pagina delle impostazioni'))),
-          ],
-        ),
-        Column(
-          children: const [
-            SearchField(),
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Pagina Biglietti',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // Indice della pagina attualmente visualizzata:
-  // 0 -> Tutti gli account; 1 -> Preferiti; 2 -> Impostazioni
   int _selectedIndex = 0;
 
   late AnimationController _animationController;
@@ -183,90 +115,59 @@ class _HomepageState extends State<Homepage>
     });
   }
 
-  Future<void> _navigateTo(Widget page) async {
-    _toggleMenu();
-    if (!mounted) return;
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(builder: (BuildContext context) => page),
-    );
-  }
-
-  Widget _buildMenuOption(IconData icon, String label, Widget page) {
-    return GestureDetector(
-      onTap: () => _navigateTo(page),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.orange,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.orange.withAlpha(150),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenu() {
-    return Positioned(
-      bottom: 80,
-      right: 16,
-      child: FadeTransition(
-        opacity: _animationController,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            _buildMenuOption(
-              Icons.language,
-              'Web Account',
-              const WebAccountPage(),
-            ),
-            _buildMenuOption(
-              Icons.credit_card,
-              'Credit Card',
-              const CreditCardPage(),
-            ),
-            _buildMenuOption(
-              Icons.badge,
-              'ID/Passport',
-              const IDPassportPage(),
-            ),
-            _buildMenuOption(Icons.note, 'Note', const NotePage()),
-            _buildMenuOption(Icons.more_horiz, 'Another', const AnotherPage()),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: const CustomAppBar(),
       backgroundColor: Colors.white,
-      body: _buildContent(),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          AllAccountsTab(
+            accounts: filteredAccounts,
+            searchQuery: _searchQuery,
+            onFavoriteToggle: toggleFavorite,
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          FavoritesTab(
+            favoriteAccounts: filteredFavoriteAccounts,
+            searchQuery: _searchQuery,
+            onFavoriteToggle: toggleFavorite,
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          SettingsTab(
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          TicketsTab(
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+        ],
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Stack(
         children: [
-          if (_isMenuOpen) _buildMenu(),
+          if (_isMenuOpen)
+            FloatingMenu(
+              animation: _animationController,
+              toggleMenu: _toggleMenu,
+            ),
           Positioned(
             bottom: 16,
             right: 16,
