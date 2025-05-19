@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../helpers/password_strength_helper.dart';
+import '../widgets/password_generator_dialog.dart';
 
 class WebAccountPage extends StatefulWidget {
   const WebAccountPage({super.key});
@@ -58,48 +60,15 @@ class WebAccountPageState extends State<WebAccountPage> {
 
   void _updatePasswordStrength() {
     final password = _passwordController.text;
-    final strength = _calculatePasswordStrength(password);
-    final label = _getStrengthLabel(strength);
-    final crackTime = _estimateCrackTime(password);
+    final strength = PasswordStrengthHelper.calculatePasswordStrength(password);
+    final label = PasswordStrengthHelper.getStrengthLabel(strength);
+    final crackTime = PasswordStrengthHelper.estimateCrackTime(password);
 
     setState(() {
       _passwordStrength = strength;
       _passwordStrengthLabel = label;
       _passwordCrackTime = crackTime;
     });
-  }
-
-  double _calculatePasswordStrength(String password) {
-    if (password.isEmpty) return 0;
-    double strength = 0;
-    if (password.length >= 8) strength += 0.25;
-    if (RegExp(r'[A-Z]').hasMatch(password)) strength += 0.25;
-    if (RegExp(r'[0-9]').hasMatch(password)) strength += 0.25;
-    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) strength += 0.25;
-    return strength.clamp(0, 1);
-  }
-
-  String _getStrengthLabel(double strength) {
-    if (strength == 0) return '';
-    if (strength < 0.5) return 'Weak';
-    if (strength < 0.75) return 'Medium';
-    return 'Strong';
-  }
-
-  String _estimateCrackTime(String password) {
-    // Simplified estimation based on length and complexity
-    if (password.isEmpty) return '';
-    int baseTime = password.length * 1000; // milliseconds
-    if (RegExp(r'[A-Z]').hasMatch(password)) baseTime *= 2;
-    if (RegExp(r'[0-9]').hasMatch(password)) baseTime *= 2;
-    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) baseTime *= 3;
-
-    if (baseTime < 10000) return 'Seconds';
-    if (baseTime < 60000) return 'Minutes';
-    if (baseTime < 3600000) return 'Hours';
-    if (baseTime < 86400000) return 'Days';
-    if (baseTime < 31536000000) return 'Years';
-    return 'Centuries';
   }
 
   void _togglePasswordVisibility() {
@@ -112,179 +81,17 @@ class WebAccountPageState extends State<WebAccountPage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        int localLength = _generatedPasswordLength;
-        String localType = _generatedPasswordType;
-        String localPassword = _generatedPassword;
-        final TextEditingController localPasswordController =
-            TextEditingController(text: localPassword);
-
-        void localGeneratePassword() {
-          final length = localLength;
-          final type = localType;
-          const letters = 'abcdefghijklmnopqrstuvwxyz';
-          const numbers = '0123456789';
-          const symbols = '!@#\$%^&*()-_=+[]{}|;:,.<>?';
-
-          String chars = '';
-          switch (type) {
-            case 'Memorizable':
-              chars = 'aeioulnrst';
-              break;
-            case 'Numbers':
-              chars = numbers;
-              break;
-            case 'Random':
-              chars = letters + letters.toUpperCase() + numbers + symbols;
-              break;
-            case 'Letters+Numbers':
-              chars = letters + letters.toUpperCase() + numbers;
-              break;
-            default:
-              chars = letters + letters.toUpperCase() + numbers + symbols;
-          }
-
-          final rand =
-              List.generate(length, (index) {
-                final idx =
-                    (DateTime.now().millisecondsSinceEpoch + index) %
-                    chars.length;
-                return chars[idx];
-              }).join();
-
-          localPassword = rand;
-          localPasswordController.text = localPassword;
-        }
-
-        localGeneratePassword();
-
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Password Generator',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password length slider
-                    Row(
-                      children: [
-                        const Text('Length:'),
-                        Expanded(
-                          child: Slider(
-                            value: localLength.toDouble(),
-                            min: 8,
-                            max: 64,
-                            divisions: 56,
-                            label: localLength.toString(),
-                            onChanged: (value) {
-                              setState(() {
-                                localLength = value.toInt();
-                                localGeneratePassword();
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Password type dropdown
-                    DropdownButton<String>(
-                      value: localType,
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Memorizable',
-                          child: Text('Memorizable'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Numbers',
-                          child: Text('Numbers'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Random',
-                          child: Text('Random'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Letters+Numbers',
-                          child: Text('Letters+Numbers'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            localType = value;
-                            localGeneratePassword();
-                          });
-                        }
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Generated password display
-                    TextField(
-                      controller: localPasswordController,
-                      readOnly: false,
-                      decoration: const InputDecoration(
-                        border: UnderlineInputBorder(),
-                        hintText: 'Generated password will appear here',
-                      ),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            localGeneratePassword();
-                            setState(() {});
-                          },
-                          child: const Text('Generate'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            _passwordController.text =
-                                localPasswordController.text;
-                            setState(() {
-                              _generatedPasswordLength = localLength;
-                              _generatedPasswordType = localType;
-                              _generatedPassword = localPasswordController.text;
-                            });
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('OK'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Cancel'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
+        return PasswordGeneratorDialog(
+          initialLength: _generatedPasswordLength,
+          initialType: _generatedPasswordType,
+          initialPassword: _generatedPassword,
+          onPasswordGenerated: (password, length, type) {
+            setState(() {
+              _generatedPassword = password;
+              _generatedPasswordLength = length;
+              _generatedPasswordType = type;
+              _passwordController.text = password;
+            });
           },
         );
       },
