@@ -48,8 +48,51 @@ class WebAccountPageState extends State<WebAccountPage> {
 
   // New icon data fields
   IconData? _selectedSymbolIcon;
+  Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
   String? _selectedCustomIconPath;
+
+  // Predefined list of symbol icons for selection
+  final List<IconData> _availableSymbols = [
+    Icons.star,
+    Icons.favorite,
+    Icons.home,
+    Icons.work,
+    Icons.school,
+    Icons.lock,
+    Icons.person,
+    Icons.shopping_cart,
+    Icons.flight,
+    Icons.music_note,
+    Icons.camera_alt,
+    Icons.phone,
+    Icons.email,
+    Icons.account_balance,
+    Icons.book,
+  ];
+
+  // Predefined list of colors for selection
+  final List<Color> _availableColors = [
+    Colors.red,
+    Colors.pink,
+    Colors.purple,
+    Colors.deepPurple,
+    Colors.indigo,
+    Colors.blue,
+    Colors.lightBlue,
+    Colors.cyan,
+    Colors.teal,
+    Colors.green,
+    Colors.lightGreen,
+    Colors.lime,
+    Colors.yellow,
+    Colors.amber,
+    Colors.orange,
+    Colors.deepOrange,
+    Colors.brown,
+    Colors.grey,
+    Colors.blueGrey,
+  ];
 
   @override
   void initState() {
@@ -84,7 +127,10 @@ class WebAccountPageState extends State<WebAccountPage> {
       website: _websiteController.text.trim(),
       iconMode: _iconSelectionMode,
       symbolIcon: _selectedSymbolIcon,
-      colorIcon: _selectedColorIcon,
+      colorIcon:
+          _iconSelectionMode == 'Symbol'
+              ? _selectedSymbolColor
+              : _selectedColorIcon,
       customIconPath: _selectedCustomIconPath,
     );
     _accountController.addAccount(newAccount);
@@ -205,12 +251,145 @@ class WebAccountPageState extends State<WebAccountPage> {
     setState(() {
       _iconSelectionMode = mode;
     });
+    if (mode == 'Symbol') {
+      _showSymbolSelectionDialog();
+    } else if (mode == 'Color') {
+      _showColorSelectionDialog();
+    }
   }
 
   void _scanQRCode() {
     // Placeholder for QR code scanning functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('QR Code scanner not implemented')),
+    );
+  }
+
+  void _showSymbolSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Symbol Icon'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              children:
+                  _availableSymbols.map((iconData) {
+                    return IconButton(
+                      icon: Icon(
+                        iconData,
+                        color: _selectedSymbolColor ?? Colors.black,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _selectedSymbolIcon = iconData;
+                        });
+                        Navigator.of(context).pop();
+                        _showSymbolColorSelectionDialog();
+                      },
+                    );
+                  }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSymbolColorSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Symbol Color'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: GridView.count(
+              crossAxisCount: 5,
+              shrinkWrap: true,
+              children:
+                  _availableColors.map((color) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedSymbolColor = color;
+                          _selectedColorIcon =
+                              null; // Clear color icon selection
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color:
+                                _selectedSymbolColor == color
+                                    ? Colors.black
+                                    : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        width: 36,
+                        height: 36,
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showColorSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Color'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: GridView.count(
+              crossAxisCount: 5,
+              shrinkWrap: true,
+              children:
+                  _availableColors.map((color) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedColorIcon = color;
+                          _selectedSymbolIcon = null; // Clear symbol selection
+                          _selectedSymbolColor = null;
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color:
+                                _selectedColorIcon == color
+                                    ? Colors.black
+                                    : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        width: 36,
+                        height: 36,
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -272,6 +451,22 @@ class WebAccountPageState extends State<WebAccountPage> {
                         _iconSelectionMode == 'Website Icon' &&
                                 _websiteController.text.isNotEmpty
                             ? _buildWebsiteFavicon()
+                            : _iconSelectionMode == 'Symbol' &&
+                                _selectedSymbolIcon != null
+                            ? Icon(
+                              _selectedSymbolIcon,
+                              color: _selectedSymbolColor ?? Colors.black,
+                            )
+                            : _iconSelectionMode == 'Color' &&
+                                _selectedColorIcon != null
+                            ? Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: _selectedColorIcon,
+                                shape: BoxShape.circle,
+                              ),
+                            )
                             : Icon(_getIconForMode(_iconSelectionMode)),
                   ),
                 ),
