@@ -45,6 +45,14 @@ class WebAccountPageState extends State<WebAccountPage> {
   void initState() {
     super.initState();
     _passwordController.addListener(_updatePasswordStrength);
+    _websiteController.addListener(() {
+      final websiteText = _websiteController.text.trim();
+      if (websiteText.isNotEmpty) {
+        setState(() {
+          _iconSelectionMode = 'Website Icon';
+        });
+      }
+    });
   }
 
   @override
@@ -184,34 +192,13 @@ class WebAccountPageState extends State<WebAccountPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Web Account'),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: _selectIconMode,
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'Website Icon',
-                    child: Text('Website Icon'),
-                  ),
-                  const PopupMenuItem(value: 'Symbol', child: Text('Symbol')),
-                  const PopupMenuItem(value: 'Color', child: Text('Color')),
-                  const PopupMenuItem(
-                    value: 'Custom Icon',
-                    child: Text('Custom Icon'),
-                  ),
-                ],
-            icon: const Icon(Icons.image),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Web Account')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title with icon selection mode display
+            // Title with icon selection mode display and popup menu
             Row(
               children: [
                 Expanded(
@@ -224,9 +211,36 @@ class WebAccountPageState extends State<WebAccountPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                CircleAvatar(
-                  radius: 20,
-                  child: Icon(_getIconForMode(_iconSelectionMode)),
+                PopupMenuButton<String>(
+                  onSelected: _selectIconMode,
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem(
+                          value: 'Website Icon',
+                          child: Text('Website Icon'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'Symbol',
+                          child: Text('Symbol'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'Color',
+                          child: Text('Color'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'Custom Icon',
+                          child: Text('Custom Icon'),
+                        ),
+                      ],
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.transparent,
+                    child:
+                        _iconSelectionMode == 'Website Icon' &&
+                                _websiteController.text.isNotEmpty
+                            ? _buildWebsiteFavicon()
+                            : Icon(_getIconForMode(_iconSelectionMode)),
+                  ),
                 ),
               ],
             ),
@@ -387,6 +401,40 @@ class WebAccountPageState extends State<WebAccountPage> {
       default:
         return Icons.language;
     }
+  }
+
+  Widget _buildWebsiteFavicon() {
+    final websiteUrl = _websiteController.text.trim();
+    if (websiteUrl.isEmpty) {
+      return Icon(_getIconForMode('Website Icon'));
+    }
+    final faviconUrl = _getFaviconUrl(websiteUrl);
+    return ClipOval(
+      child: Image.network(
+        faviconUrl,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(_getIconForMode('Website Icon'));
+        },
+      ),
+    );
+  }
+
+  String _getFaviconUrl(String websiteUrl) {
+    String domain = websiteUrl;
+    if (domain.startsWith('http://')) {
+      domain = domain.substring(7);
+    } else if (domain.startsWith('https://')) {
+      domain = domain.substring(8);
+    }
+    // Remove any path after domain
+    if (domain.contains('/')) {
+      domain = domain.split('/')[0];
+    }
+    // Use Google's favicon service for better favicon fetching with larger size
+    return 'https://www.google.com/s2/favicons?domain=$domain&sz=64';
   }
 
   Widget _buildPasswordGeneratorPopup() {
