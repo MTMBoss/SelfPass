@@ -21,6 +21,9 @@ class AccountCard extends StatelessWidget {
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
+        onTap: () {
+          Navigator.pushNamed(context, '/editAccount', arguments: account);
+        },
         leading: AccountIcon(account: account),
         title: RichText(
           text: TextSpan(

@@ -23,6 +23,8 @@ class WebAccountPageState extends State<WebAccountPage> {
 
   final AccountController _accountController = AccountController();
 
+  Account? _editingAccount;
+
   bool _passwordVisible = false;
   double _passwordStrength = 0;
   String _passwordStrengthLabel = '';
@@ -91,6 +93,24 @@ class WebAccountPageState extends State<WebAccountPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args != null && args is Account) {
+      _editingAccount = args;
+      _titleController.text = _editingAccount!.accountName;
+      _loginController.text = _editingAccount!.username;
+      _passwordController.text = _editingAccount!.password;
+      _websiteController.text = _editingAccount!.website;
+      _iconSelectionMode = _editingAccount!.iconMode;
+      _selectedSymbolIcon = _editingAccount!.symbolIcon;
+      _selectedSymbolColor = _editingAccount!.colorIcon;
+      _selectedColorIcon = _editingAccount!.colorIcon;
+      _selectedCustomIconPath = _editingAccount!.customIconPath;
+    }
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _loginController.dispose();
@@ -102,20 +122,28 @@ class WebAccountPageState extends State<WebAccountPage> {
   }
 
   void _saveAccount() {
-    final newAccount = Account(
+    // Unify colorIcon assignment to always use _selectedColorIcon
+    Color? unifiedColorIcon = _selectedColorIcon;
+    if (_iconSelectionMode == 'Symbol' && _selectedSymbolColor != null) {
+      unifiedColorIcon = _selectedSymbolColor;
+    }
+
+    final accountToSave = Account(
       accountName: _titleController.text.trim(),
       username: _loginController.text.trim(),
       password: _passwordController.text,
       website: _websiteController.text.trim(),
       iconMode: _iconSelectionMode,
       symbolIcon: _selectedSymbolIcon,
-      colorIcon:
-          _iconSelectionMode == 'Symbol'
-              ? _selectedSymbolColor
-              : _selectedColorIcon,
+      colorIcon: unifiedColorIcon,
       customIconPath: _selectedCustomIconPath,
     );
-    _accountController.addAccount(newAccount);
+
+    if (_editingAccount != null) {
+      _accountController.updateAccount(accountToSave);
+    } else {
+      _accountController.addAccount(accountToSave);
+    }
     Navigator.pop(context);
   }
 

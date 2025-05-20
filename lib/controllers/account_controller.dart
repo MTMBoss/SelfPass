@@ -72,4 +72,14 @@ class AccountController extends ChangeNotifier {
     accounts.add(account);
     notifyListeners();
   }
+
+  void updateAccount(Account updatedAccount) {
+    final index = accounts.indexWhere(
+      (a) => a.accountName == updatedAccount.accountName,
+    );
+    if (index != -1) {
+      accounts[index] = updatedAccount;
+      notifyListeners();
+    }
+  }
 }

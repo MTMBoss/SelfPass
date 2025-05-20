@@ -43,7 +43,7 @@ class AccountIcon extends StatelessWidget {
         return Icon(
           account.symbolIcon ?? Icons.star,
           size: 40,
-          color: Colors.amber,
+          color: account.colorIcon ?? Colors.amber,
         );
       case 'Color':
         return CircleAvatar(
