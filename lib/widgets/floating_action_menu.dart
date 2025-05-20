@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'floating_menu.dart';
 
 class FloatingActionMenu extends StatefulWidget {
-  const FloatingActionMenu({super.key});
+  final VoidCallback? onMenuClosed;
+
+  const FloatingActionMenu({super.key, this.onMenuClosed});
 
   @override
   FloatingActionMenuState createState() => FloatingActionMenuState();
@@ -39,6 +41,12 @@ class FloatingActionMenuState extends State<FloatingActionMenu>
     });
   }
 
+  Future<void> _handleMenuClosed() async {
+    if (widget.onMenuClosed != null) {
+      widget.onMenuClosed!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -46,7 +54,10 @@ class FloatingActionMenuState extends State<FloatingActionMenu>
         if (_isMenuOpen)
           FloatingMenu(
             animation: _animationController,
-            toggleMenu: _toggleMenu,
+            toggleMenu: () async {
+              _toggleMenu();
+              await _handleMenuClosed();
+            },
           ),
         Positioned(
           bottom: 16,

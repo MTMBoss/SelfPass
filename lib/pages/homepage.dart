@@ -27,6 +27,22 @@ class _HomepageState extends State<Homepage>
   // Stato della query di ricerca
   String _searchQuery = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _accountController.addListener(_onAccountsChanged);
+  }
+
+  @override
+  void dispose() {
+    _accountController.removeListener(_onAccountsChanged);
+    super.dispose();
+  }
+
+  void _onAccountsChanged() {
+    setState(() {});
+  }
+
   // Funzione per alternare il flag isFavorite
   void toggleFavorite(Account account) {
     setState(() {
@@ -48,6 +64,7 @@ class _HomepageState extends State<Homepage>
         index: _selectedIndex,
         children: [
           AllAccountsTab(
+            key: ValueKey(_accountController.accounts.length),
             accounts: _accountController.filterAccounts(_searchQuery),
             searchQuery: _searchQuery,
             onFavoriteToggle: toggleFavorite,
@@ -86,7 +103,11 @@ class _HomepageState extends State<Homepage>
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: FloatingActionMenu(),
+      floatingActionButton: FloatingActionMenu(
+        onMenuClosed: () {
+          setState(() {});
+        },
+      ),
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onItemSelected: (index) {

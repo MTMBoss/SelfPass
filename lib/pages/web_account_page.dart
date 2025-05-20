@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../helpers/password_strength_helper.dart';
 import '../widgets/password_generator_dialog.dart';
 
+import '../models/account.dart';
+import '../controllers/account_controller.dart';
+
 class WebAccountPage extends StatefulWidget {
   const WebAccountPage({super.key});
 
@@ -16,6 +19,8 @@ class WebAccountPageState extends State<WebAccountPage> {
   final TextEditingController _websiteController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+
+  final AccountController _accountController = AccountController();
 
   bool _passwordVisible = false;
   double _passwordStrength = 0;
@@ -41,6 +46,11 @@ class WebAccountPageState extends State<WebAccountPage> {
   String _iconSelectionMode =
       'Website Icon'; // Other options: Symbol, Color, Custom Icon
 
+  // New icon data fields
+  IconData? _selectedSymbolIcon;
+  Color? _selectedColorIcon;
+  String? _selectedCustomIconPath;
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +74,21 @@ class WebAccountPageState extends State<WebAccountPage> {
     _otpController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _saveAccount() {
+    final newAccount = Account(
+      accountName: _titleController.text.trim(),
+      username: _loginController.text.trim(),
+      password: _passwordController.text,
+      website: _websiteController.text.trim(),
+      iconMode: _iconSelectionMode,
+      symbolIcon: _selectedSymbolIcon,
+      colorIcon: _selectedColorIcon,
+      customIconPath: _selectedCustomIconPath,
+    );
+    _accountController.addAccount(newAccount);
+    Navigator.pop(context);
   }
 
   void _updatePasswordStrength() {
@@ -192,7 +217,15 @@ class WebAccountPageState extends State<WebAccountPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Web Account')),
+      appBar: AppBar(
+        title: const Text('Web Account'),
+        actions: [
+          TextButton(
+            onPressed: _saveAccount,
+            child: const Text('SAVE', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

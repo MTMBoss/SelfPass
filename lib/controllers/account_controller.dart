@@ -1,26 +1,39 @@
+import 'package:flutter/foundation.dart';
 import '../models/account.dart';
 
-class AccountController {
+class AccountController extends ChangeNotifier {
+  static final AccountController _instance = AccountController._internal();
+
+  factory AccountController() {
+    return _instance;
+  }
+
+  AccountController._internal();
+
   List<Account> accounts = [
     Account(
       accountName: 'Google',
       username: 'user@gmail.com',
       password: '••••••',
+      website: 'https://www.google.com',
     ),
     Account(
       accountName: 'Facebook',
       username: 'user@facebook.com',
       password: '••••••',
+      website: 'https://www.facebook.com',
     ),
     Account(
       accountName: 'Twitter',
       username: 'user@twitter.com',
       password: '••••••',
+      website: 'https://www.twitter.com',
     ),
     Account(
       accountName: 'Instagram',
       username: 'user@instagram.com',
       password: '••••••',
+      website: 'https://www.instagram.com',
     ),
   ];
 
@@ -52,5 +65,11 @@ class AccountController {
 
   void toggleFavorite(Account account) {
     account.isFavorite = !account.isFavorite;
+    notifyListeners();
+  }
+
+  void addAccount(Account account) {
+    accounts.add(account);
+    notifyListeners();
   }
 }

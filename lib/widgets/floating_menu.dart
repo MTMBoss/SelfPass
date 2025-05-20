@@ -22,9 +22,9 @@ class FloatingMenu extends StatelessWidget {
     BuildContext context,
   ) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         toggleMenu();
-        Navigator.push<void>(
+        await Navigator.push<void>(
           context,
           MaterialPageRoute<void>(builder: (BuildContext context) => page),
         );
