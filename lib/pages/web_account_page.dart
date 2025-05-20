@@ -4,6 +4,7 @@ import '../widgets/password_generator_dialog.dart';
 
 import '../models/account.dart';
 import '../controllers/account_controller.dart';
+import '../widgets/symbol_families_selector.dart';
 
 class WebAccountPage extends StatefulWidget {
   const WebAccountPage({super.key});
@@ -51,25 +52,6 @@ class WebAccountPageState extends State<WebAccountPage> {
   Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
   String? _selectedCustomIconPath;
-
-  // Predefined list of symbol icons for selection
-  final List<IconData> _availableSymbols = [
-    Icons.star,
-    Icons.favorite,
-    Icons.home,
-    Icons.work,
-    Icons.school,
-    Icons.lock,
-    Icons.person,
-    Icons.shopping_cart,
-    Icons.flight,
-    Icons.music_note,
-    Icons.camera_alt,
-    Icons.phone,
-    Icons.email,
-    Icons.account_balance,
-    Icons.book,
-  ];
 
   // Predefined list of colors for selection
   final List<Color> _availableColors = [
@@ -273,25 +255,16 @@ class WebAccountPageState extends State<WebAccountPage> {
           title: const Text('Select Symbol Icon'),
           content: SizedBox(
             width: double.maxFinite,
-            child: GridView.count(
-              crossAxisCount: 4,
-              shrinkWrap: true,
-              children:
-                  _availableSymbols.map((iconData) {
-                    return IconButton(
-                      icon: Icon(
-                        iconData,
-                        color: _selectedSymbolColor ?? Colors.black,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _selectedSymbolIcon = iconData;
-                        });
-                        Navigator.of(context).pop();
-                        _showSymbolColorSelectionDialog();
-                      },
-                    );
-                  }).toList(),
+            height: 350,
+            child: SymbolFamiliesSelector(
+              onSymbolSelected: (iconData, color) {
+                setState(() {
+                  _selectedSymbolIcon = iconData;
+                  _selectedSymbolColor = color ?? Colors.black;
+                });
+                Navigator.of(context).pop();
+                _showSymbolColorSelectionDialog();
+              },
             ),
           ),
         );
