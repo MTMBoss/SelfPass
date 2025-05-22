@@ -398,13 +398,12 @@ class WebAccountPageState extends State<WebAccountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.check, color: Colors.black),
+          onPressed: _saveAccount,
+        ),
         title: const Text('Web Account'),
-        actions: [
-          TextButton(
-            onPressed: _saveAccount,
-            child: const Text('SAVE', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
