@@ -5,6 +5,7 @@ import '../widgets/password_generator_dialog.dart';
 import '../models/account.dart';
 import '../controllers/account_controller.dart';
 import '../widgets/symbol_families_selector.dart';
+import 'organize_fields_page.dart';
 
 class WebAccountPage extends StatefulWidget {
   const WebAccountPage({super.key});
@@ -39,8 +40,8 @@ class WebAccountPageState extends State<WebAccountPage> {
   final TextEditingController _generatedPasswordController =
       TextEditingController();
 
-  // Additional fields
-  List<Widget> additionalFields = [];
+  // Additional fields with labels
+  List<Map<String, Widget>> additionalFields = [];
 
   // Saved logins example (in real app, load from storage)
   List<String> savedLogins = ['user@example.com', 'admin@site.com', 'testuser'];
@@ -237,17 +238,19 @@ class WebAccountPageState extends State<WebAccountPage> {
 
   void _addAnotherField() {
     setState(() {
-      additionalFields.add(
-        Padding(
+      final label = 'Additional Field ${additionalFields.length + 1}';
+      additionalFields.add({
+        'label': Text(label),
+        'widget': Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: TextFormField(
             decoration: InputDecoration(
-              labelText: 'Additional Field',
+              labelText: label,
               border: const OutlineInputBorder(),
             ),
           ),
         ),
-      );
+      });
     });
   }
 
@@ -404,6 +407,105 @@ class WebAccountPageState extends State<WebAccountPage> {
           onPressed: _saveAccount,
         ),
         title: const Text('Web Account'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              switch (value) {
+                case 'organize_fields':
+                  // Prepare list of fields to organize
+                  List<String> fieldsToOrganize = [
+                    'Title',
+                    'Login',
+                    'Password',
+                    'Website',
+                    'One-time password (2FA)',
+                    'Notes',
+                  ];
+                  // Add additional fields if any
+                  for (var entry in additionalFields) {
+                    final labelWidget = entry['label'];
+                    if (labelWidget is Text) {
+                      final label = labelWidget.data;
+                      if (label != null && label.isNotEmpty) {
+                        fieldsToOrganize.add(label);
+                      }
+                    }
+                  }
+                  // Navigate to OrganizeFieldsPage and await reordered fields
+                  final reorderedFields = await Navigator.push<List<String>>(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) =>
+                              OrganizeFieldsPage(fields: fieldsToOrganize),
+                    ),
+                  );
+                  if (reorderedFields != null) {
+                    setState(() {
+                      // Reorder additionalFields based on reorderedFields
+                      // We keep main fields fixed, only reorder additionalFields
+                      List<String> mainFields = [
+                        'Title',
+                        'Login',
+                        'Password',
+                        'Website',
+                        'One-time password (2FA)',
+                        'Notes',
+                      ];
+                      // Extract reordered additional fields
+                      List<String> reorderedAdditional =
+                          reorderedFields
+                              .where((f) => !mainFields.contains(f))
+                              .toList();
+                      // Rebuild additionalFields list in new order
+                      List<Map<String, Widget>> newAdditionalFields = [];
+                      for (var label in reorderedAdditional) {
+                        // Find existing entry with this label
+                        var existing = additionalFields.firstWhere((entry) {
+                          final labelWidget = entry['label'];
+                          if (labelWidget is Text) {
+                            return labelWidget.data == label;
+                          }
+                          return false;
+                        }, orElse: () => <String, Widget>{});
+                        if (existing.isNotEmpty) {
+                          newAdditionalFields.add(existing);
+                        }
+                      }
+                      additionalFields = newAdditionalFields;
+                    });
+                  }
+                  break;
+                case 'cancel_changes':
+                  Navigator.pop(context);
+                  break;
+                case 'save_template':
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Save as template not implemented yet'),
+                    ),
+                  );
+                  break;
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'organize_fields',
+                    child: Text('Organizza Campi'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'cancel_changes',
+                    child: Text('Annulla Modifiche'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'save_template',
+                    child: Text('Salva come modello'),
+                  ),
+                ],
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -576,7 +678,7 @@ class WebAccountPageState extends State<WebAccountPage> {
             const SizedBox(height: 16),
 
             // Additional fields
-            ...additionalFields,
+            ...additionalFields.map((entry) => entry['widget']!),
 
             // Notes input
             TextFormField(
