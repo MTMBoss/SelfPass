@@ -1,5 +1,5 @@
 
-### Aggiornato il 05/18/2025 22:55:41 ###
+### Aggiornato il 05/19/2025 00:36:55 ###
 
 Elenco del percorso delle cartelle
 Numero di serie del volume: 6EB3-501E
@@ -10,7 +10,12 @@ C:\PROGRAMMAZIONE\SELFPASS\LIB
 |       account.dart
 |       
 +---pages
+|       another_page.dart
+|       credit_card_page.dart
 |       homepage.dart
+|       id_passport_page.dart
+|       note_page.dart
+|       web_account_page.dart
 |       
 \---widgets
         account_card.dart
@@ -61,14 +66,53 @@ class Account {
 }
 
 
+C:\Programmazione\selfpass\lib\pages\another_page.dart:
+import 'package:flutter/material.dart';
+
+class AnotherPage extends StatelessWidget {
+  const AnotherPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Another')),
+      body: const Center(child: Text('Another Page')),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\credit_card_page.dart:
+import 'package:flutter/material.dart';
+
+class CreditCardPage extends StatelessWidget {
+  const CreditCardPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Credit Card')),
+      body: const Center(child: Text('Credit Card Page')),
+    );
+  }
+}
+
+
 C:\Programmazione\selfpass\lib\pages\homepage.dart:
 import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:logger/logger.dart';
 import '../models/account.dart';
 import '../widgets/account_list.dart';
 import '../widgets/search_field.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_drawer.dart';
 import '../widgets/custom_bottom_navigation_bar.dart';
+import 'web_account_page.dart';
+import 'credit_card_page.dart';
+import 'id_passport_page.dart';
+import 'note_page.dart';
+import 'another_page.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -78,6 +122,8 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  final Logger logger = Logger();
+
   // Lista di account d'esempio (isFavorite inizialmente false)
   final List<Account> accounts = [
     Account(
@@ -216,16 +262,124 @@ class _HomepageState extends State<Homepage> {
       appBar: const CustomAppBar(),
       backgroundColor: Colors.white,
       body: _buildContent(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Azione per aggiungere un nuovo account
-        },
-        shape: const CircleBorder(),
+      floatingActionButton: SpeedDial(
+        icon: Icons.add,
+        activeIcon: Icons.close,
         backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        activeBackgroundColor: Colors.blue,
+        activeForegroundColor: Colors.white,
+        buttonSize: const Size(56, 56),
+        visible: true,
+        closeManually: false,
+        curve: Curves.easeInOut,
+        overlayColor: Colors.black,
+        overlayOpacity: 0.5,
         elevation: 4,
-        child: const Icon(Icons.add, size: 40),
+        shape: const CircleBorder(),
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.language),
+            backgroundColor: Colors.orange,
+            label: 'Web Account',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () async {
+              logger.i('Navigating to Web Account Page');
+              try {
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (BuildContext context) => const WebAccountPage(),
+                  ),
+                );
+                logger.i('Returned from Web Account Page');
+              } catch (e) {
+                logger.e('Navigation error: $e');
+              }
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.credit_card),
+            backgroundColor: Colors.orange,
+            label: 'Credit Card',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () async {
+              logger.i('Navigating to Credit Card Page');
+              try {
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (BuildContext context) => const CreditCardPage(),
+                  ),
+                );
+                logger.i('Returned from Credit Card Page');
+              } catch (e) {
+                logger.e('Navigation error: $e');
+              }
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.badge),
+            backgroundColor: Colors.orange,
+            label: 'ID/Passport',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () async {
+              logger.i('Navigating to ID/Passport Page');
+              try {
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (BuildContext context) => const IDPassportPage(),
+                  ),
+                );
+                logger.i('Returned from ID/Passport Page');
+              } catch (e) {
+                logger.e('Navigation error: $e');
+              }
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.note),
+            backgroundColor: Colors.orange,
+            label: 'Note',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () async {
+              logger.i('Navigating to Note Page');
+              try {
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (context) => const NotePage(),
+                  ),
+                );
+                logger.i('Returned from Note Page');
+              } catch (e) {
+                logger.e('Navigation error: $e');
+              }
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.more_horiz),
+            backgroundColor: Colors.orange,
+            label: 'Another',
+            labelStyle: const TextStyle(fontSize: 16),
+            onTap: () async {
+              logger.i('Navigating to Another Page');
+              try {
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (context) => const AnotherPage(),
+                  ),
+                );
+                logger.i('Returned from Another Page');
+              } catch (e) {
+                logger.e('Navigation error: $e');
+              }
+            },
+          ),
+        ],
       ),
-      // Modificata la posizione del FAB a destra
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
@@ -235,6 +389,54 @@ class _HomepageState extends State<Homepage> {
           });
         },
       ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\id_passport_page.dart:
+import 'package:flutter/material.dart';
+
+class IDPassportPage extends StatelessWidget {
+  const IDPassportPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('ID/Passport')),
+      body: const Center(child: Text('ID/Passport Page')),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\note_page.dart:
+import 'package:flutter/material.dart';
+
+class NotePage extends StatelessWidget {
+  const NotePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Note')),
+      body: const Center(child: Text('Note Page')),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\web_account_page.dart:
+import 'package:flutter/material.dart';
+
+class WebAccountPage extends StatelessWidget {
+  const WebAccountPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Web Account')),
+      body: const Center(child: Text('Web Account Page')),
     );
   }
 }
@@ -600,6 +802,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.1.0
   flutter_speed_dial: ^7.0.0
+  logger: ^2.5.0
 
 
 dev_dependencies:

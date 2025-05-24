@@ -122,7 +122,41 @@ class WebAccountPageState extends State<WebAccountPage> {
     super.dispose();
   }
 
+  List<String>? _lastReorderedFields;
+
   void _saveAccount() {
+    // Reorder additionalFields if reordered fields exist
+    if (_lastReorderedFields != null) {
+      setState(() {
+        List<String> mainFields = [
+          'Title',
+          'Login',
+          'Password',
+          'Website',
+          'One-time password (2FA)',
+          'Notes',
+        ];
+        List<String> reorderedAdditional =
+            _lastReorderedFields!
+                .where((f) => !mainFields.contains(f))
+                .toList();
+        List<Map<String, Widget>> newAdditionalFields = [];
+        for (var label in reorderedAdditional) {
+          var existing = additionalFields.firstWhere((entry) {
+            final labelWidget = entry['label'];
+            if (labelWidget is Text) {
+              return labelWidget.data == label;
+            }
+            return false;
+          }, orElse: () => <String, Widget>{});
+          if (existing.isNotEmpty) {
+            newAdditionalFields.add(existing);
+          }
+        }
+        additionalFields = newAdditionalFields;
+      });
+    }
+
     // Unify colorIcon assignment to always use _selectedColorIcon
     Color? unifiedColorIcon = _selectedColorIcon;
     if (_iconSelectionMode == 'Symbol' && _selectedSymbolColor != null) {
@@ -442,6 +476,7 @@ class WebAccountPageState extends State<WebAccountPage> {
                   );
                   if (reorderedFields != null) {
                     setState(() {
+                      _lastReorderedFields = reorderedFields;
                       // Reorder additionalFields based on reorderedFields
                       // We keep main fields fixed, only reorder additionalFields
                       List<String> mainFields = [
@@ -512,163 +547,185 @@ class WebAccountPageState extends State<WebAccountPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title with icon selection mode display and popup menu
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Title',
-                      border: UnderlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                PopupMenuButton<String>(
-                  onSelected: _selectIconMode,
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(
-                          value: 'Website Icon',
-                          child: Text('Website Icon'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'Symbol',
-                          child: Text('Symbol'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'Color',
-                          child: Text('Color'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'Custom Icon',
-                          child: Text('Custom Icon'),
-                        ),
-                      ],
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.transparent,
-                    child:
-                        _iconSelectionMode == 'Website Icon' &&
-                                _websiteController.text.isNotEmpty
-                            ? _buildWebsiteFavicon()
-                            : _iconSelectionMode == 'Symbol' &&
-                                _selectedSymbolIcon != null
-                            ? Icon(
-                              _selectedSymbolIcon,
-                              color: _selectedSymbolColor ?? Colors.black,
-                            )
-                            : _iconSelectionMode == 'Color' &&
-                                _selectedColorIcon != null
-                            ? Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: _selectedColorIcon,
-                                shape: BoxShape.circle,
-                              ),
-                            )
-                            : Icon(_getIconForMode(_iconSelectionMode)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Login with saved logins dropdown
-            TextFormField(
-              controller: _loginController,
-              decoration: InputDecoration(
-                labelText: 'Login',
-                suffixIcon: PopupMenuButton<String>(
-                  icon: const Icon(Icons.person),
-                  onSelected: _selectSavedLogin,
-                  itemBuilder:
-                      (context) =>
-                          savedLogins
-                              .map(
-                                (login) => PopupMenuItem(
-                                  value: login,
-                                  child: Text(login),
-                                ),
-                              )
-                              .toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Password with visibility toggle, strength meter, and generator icon
-            TextFormField(
-              controller: _passwordController,
-              obscureText: !_passwordVisible,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
+            for (String field
+                in _lastReorderedFields ??
+                    [
+                      'Title',
+                      'Login',
+                      'Password',
+                      'Website',
+                      'One-time password (2FA)',
+                      'Notes',
+                    ]) ...[
+              if (field == 'Title') ...[
+                Row(
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        _passwordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                    Expanded(
+                      child: TextFormField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Title',
+                          border: UnderlineInputBorder(),
+                        ),
                       ),
-                      onPressed: _togglePasswordVisibility,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.vpn_key),
-                      onPressed: _openPasswordGenerator,
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      onSelected: _selectIconMode,
+                      itemBuilder:
+                          (context) => [
+                            const PopupMenuItem(
+                              value: 'Website Icon',
+                              child: Text('Website Icon'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'Symbol',
+                              child: Text('Symbol'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'Color',
+                              child: Text('Color'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'Custom Icon',
+                              child: Text('Custom Icon'),
+                            ),
+                          ],
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.transparent,
+                        child:
+                            _iconSelectionMode == 'Website Icon' &&
+                                    _websiteController.text.isNotEmpty
+                                ? _buildWebsiteFavicon()
+                                : _iconSelectionMode == 'Symbol' &&
+                                    _selectedSymbolIcon != null
+                                ? Icon(
+                                  _selectedSymbolIcon,
+                                  color: _selectedSymbolColor ?? Colors.black,
+                                )
+                                : _iconSelectionMode == 'Color' &&
+                                    _selectedColorIcon != null
+                                ? Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: _selectedColorIcon,
+                                    shape: BoxShape.circle,
+                                  ),
+                                )
+                                : Icon(_getIconForMode(_iconSelectionMode)),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Password strength meter
-            LinearProgressIndicator(
-              value: _passwordStrength,
-              backgroundColor: Colors.grey[300],
-              color:
-                  _passwordStrength < 0.5
-                      ? Colors.red
-                      : _passwordStrength < 0.75
-                      ? Colors.orange
-                      : Colors.green,
-              minHeight: 6,
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(_passwordStrengthLabel),
-                Text('Crack time: $_passwordCrackTime'),
+                const SizedBox(height: 16),
               ],
-            ),
-            const SizedBox(height: 16),
-
-            // Website input
-            TextFormField(
-              controller: _websiteController,
-              decoration: const InputDecoration(
-                labelText: 'Website',
-                border: UnderlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // One-time password (2FA) with QR code scanner
-            TextFormField(
-              controller: _otpController,
-              decoration: InputDecoration(
-                labelText: 'One-time password (2FA)',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.qr_code),
-                  onPressed: _scanQRCode,
+              if (field == 'Login') ...[
+                TextFormField(
+                  controller: _loginController,
+                  decoration: InputDecoration(
+                    labelText: 'Login',
+                    suffixIcon: PopupMenuButton<String>(
+                      icon: const Icon(Icons.person),
+                      onSelected: _selectSavedLogin,
+                      itemBuilder:
+                          (context) =>
+                              savedLogins
+                                  .map(
+                                    (login) => PopupMenuItem(
+                                      value: login,
+                                      child: Text(login),
+                                    ),
+                                  )
+                                  .toList(),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
+              if (field == 'Password') ...[
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: !_passwordVisible,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            _passwordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: _togglePasswordVisibility,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.vpn_key),
+                          onPressed: _openPasswordGenerator,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: _passwordStrength,
+                  backgroundColor: Colors.grey[300],
+                  color:
+                      _passwordStrength < 0.5
+                          ? Colors.red
+                          : _passwordStrength < 0.75
+                          ? Colors.orange
+                          : Colors.green,
+                  minHeight: 6,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(_passwordStrengthLabel),
+                    Text('Crack time: $_passwordCrackTime'),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (field == 'Website') ...[
+                TextFormField(
+                  controller: _websiteController,
+                  decoration: const InputDecoration(
+                    labelText: 'Website',
+                    border: UnderlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (field == 'One-time password (2FA)') ...[
+                TextFormField(
+                  controller: _otpController,
+                  decoration: InputDecoration(
+                    labelText: 'One-time password (2FA)',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.qr_code),
+                      onPressed: _scanQRCode,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (field == 'Notes') ...[
+                TextFormField(
+                  controller: _notesController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ],
 
             // Add another field button
             ElevatedButton(
@@ -679,17 +736,6 @@ class WebAccountPageState extends State<WebAccountPage> {
 
             // Additional fields
             ...additionalFields.map((entry) => entry['widget']!),
-
-            // Notes input
-            TextFormField(
-              controller: _notesController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Notes',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
 
             // Attach image and attach file buttons
             ElevatedButton(
