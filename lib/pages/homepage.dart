@@ -6,10 +6,10 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_navigation_bar.dart';
 import '../widgets/custom_drawer.dart';
 import '../widgets/floating_action_menu.dart';
-import 'homepage_tabs/all_accounts_tab.dart';
-import 'homepage_tabs/favorites_tab.dart';
-import 'homepage_tabs/settings_tab.dart';
-import 'homepage_tabs/tickets_tab.dart';
+import 'tabs/all_accounts_tab.dart';
+import 'tabs/favorites_tab.dart';
+import 'tabs/settings_tab.dart';
+import 'tabs/tickets_tab.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});

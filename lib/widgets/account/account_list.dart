@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/account.dart';
-import 'account/account_card.dart';
+import '../../models/account.dart';
+import 'account_card.dart';
 
 class AccountList extends StatelessWidget {
   final List<Account> accounts;

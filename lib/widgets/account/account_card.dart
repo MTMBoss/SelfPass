@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/account.dart';
-import '../helpers/text_highlight_helper.dart';
-import 'account_icon.dart';
+import '../../models/account.dart';
+import '../../helpers/text_highlight_helper.dart';
+import '../account_icon.dart';
 
 class AccountCard extends StatelessWidget {
   final Account account;
