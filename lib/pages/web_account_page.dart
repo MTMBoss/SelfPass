@@ -43,6 +43,22 @@ class WebAccountPageState extends State<WebAccountPage> {
   // Additional fields with labels
   List<Map<String, Widget>> additionalFields = [];
 
+  static const List<String> fieldOptions = [
+    'Testo',
+    'Numero',
+    'Login',
+    'Password',
+    'Password monouso (2FA)',
+    'Scadenza',
+    'Sito web',
+    'Email',
+    'Telefono',
+    'Data',
+    'Pin',
+    'Privato',
+    'Applicazione',
+  ];
+
   // Saved logins example (in real app, load from storage)
   List<String> savedLogins = ['user@example.com', 'admin@site.com', 'testuser'];
 
@@ -279,24 +295,6 @@ class WebAccountPageState extends State<WebAccountPage> {
   void _applyGeneratedPassword() {
     _passwordController.text = _generatedPassword;
     _closePasswordGenerator();
-  }
-
-  void _addAnotherField() {
-    setState(() {
-      final label = 'Additional Field ${additionalFields.length + 1}';
-      additionalFields.add({
-        'label': Text(label),
-        'widget': Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: TextFormField(
-            decoration: InputDecoration(
-              labelText: label,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-        ),
-      });
-    });
   }
 
   void _selectSavedLogin(String login) {
@@ -934,9 +932,47 @@ class WebAccountPageState extends State<WebAccountPage> {
             ],
 
             // Add another field button
-            ElevatedButton(
-              onPressed: _addAnotherField,
-              child: const Text('ADD ANOTHER FIELD'),
+            PopupMenuButton<String>(
+              onSelected: (String selectedOption) {
+                setState(() {
+                  additionalFields.add({
+                    'label': Text(selectedOption),
+                    'widget': Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                          labelText: selectedOption,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  });
+                });
+              },
+              itemBuilder: (BuildContext context) {
+                return fieldOptions.map<PopupMenuItem<String>>((String option) {
+                  return PopupMenuItem<String>(
+                    value: option,
+                    child: Text(option),
+                  );
+                }).toList();
+              },
+              child: Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                alignment: Alignment.center,
+                child: const Text(
+                  'ADD ANOTHER FIELD',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -984,22 +1020,56 @@ class WebAccountPageState extends State<WebAccountPage> {
             }),
 
             // Attach image and attach file buttons
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Attach image not implemented')),
-                );
-              },
-              child: const Text('ATTACH IMAGE'),
+            Container(
+              height: 36,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              child: InkWell(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Attach image not implemented'),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'ATTACH IMAGE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Attach file not implemented')),
-                );
-              },
-              child: const Text('ATTACH FILE'),
+            Container(
+              height: 36,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              child: InkWell(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Attach file not implemented'),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'ATTACH FILE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
 
             // Password generator popup
