@@ -124,6 +124,17 @@ class WebAccountPageState extends State<WebAccountPage> {
 
   List<String>? _lastReorderedFields;
 
+  // New state list to track main fields displayed
+  // ignore: prefer_final_fields
+  List<String> _mainFields = [
+    'Title',
+    'Login',
+    'Password',
+    'Website',
+    'One-time password (2FA)',
+    'Notes',
+  ];
+
   void _saveAccount() {
     // Reorder additionalFields if reordered fields exist
     if (_lastReorderedFields != null) {
@@ -547,25 +558,48 @@ class WebAccountPageState extends State<WebAccountPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (String field
-                in _lastReorderedFields ??
-                    [
-                      'Title',
-                      'Login',
-                      'Password',
-                      'Website',
-                      'One-time password (2FA)',
-                      'Notes',
-                    ]) ...[
+            for (String field in _lastReorderedFields ?? _mainFields) ...[
               if (field == 'Title') ...[
                 Row(
                   children: [
                     Expanded(
                       child: TextFormField(
                         controller: _titleController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Title',
-                          border: UnderlineInputBorder(),
+                          border: const UnderlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text('Opzioni'),
+                                    content: const Text('Scegli un\'azione'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _mainFields.remove('Title');
+                                          });
+                                          _titleController.clear();
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('Elimina'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('Annulla'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -626,19 +660,56 @@ class WebAccountPageState extends State<WebAccountPage> {
                   controller: _loginController,
                   decoration: InputDecoration(
                     labelText: 'Login',
-                    suffixIcon: PopupMenuButton<String>(
-                      icon: const Icon(Icons.person),
-                      onSelected: _selectSavedLogin,
-                      itemBuilder:
-                          (context) =>
-                              savedLogins
-                                  .map(
-                                    (login) => PopupMenuItem(
-                                      value: login,
-                                      child: Text(login),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.person),
+                          onSelected: _selectSavedLogin,
+                          itemBuilder:
+                              (context) =>
+                                  savedLogins
+                                      .map(
+                                        (login) => PopupMenuItem(
+                                          value: login,
+                                          child: Text(login),
+                                        ),
+                                      )
+                                      .toList(),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Opzioni'),
+                                  content: const Text('Scegli un\'azione'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _mainFields.remove('Login');
+                                        });
+                                        _loginController.clear();
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Elimina'),
                                     ),
-                                  )
-                                  .toList(),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Annulla'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -664,6 +735,38 @@ class WebAccountPageState extends State<WebAccountPage> {
                         IconButton(
                           icon: const Icon(Icons.vpn_key),
                           onPressed: _openPasswordGenerator,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Opzioni'),
+                                  content: const Text('Scegli un\'azione'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _mainFields.remove('Password');
+                                        });
+                                        _passwordController.clear();
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Elimina'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Annulla'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -694,9 +797,41 @@ class WebAccountPageState extends State<WebAccountPage> {
               if (field == 'Website') ...[
                 TextFormField(
                   controller: _websiteController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Website',
-                    border: UnderlineInputBorder(),
+                    border: const UnderlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Opzioni'),
+                              content: const Text('Scegli un\'azione'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _mainFields.remove('Website');
+                                    });
+                                    _websiteController.clear();
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('Elimina'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('Annulla'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -706,9 +841,48 @@ class WebAccountPageState extends State<WebAccountPage> {
                   controller: _otpController,
                   decoration: InputDecoration(
                     labelText: 'One-time password (2FA)',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.qr_code),
-                      onPressed: _scanQRCode,
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.qr_code),
+                          onPressed: _scanQRCode,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Opzioni'),
+                                  content: const Text('Scegli un\'azione'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _mainFields.remove(
+                                            'One-time password (2FA)',
+                                          );
+                                        });
+                                        _otpController.clear();
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Elimina'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Annulla'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -718,9 +892,41 @@ class WebAccountPageState extends State<WebAccountPage> {
                 TextFormField(
                   controller: _notesController,
                   maxLines: 4,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Notes',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Opzioni'),
+                              content: const Text('Scegli un\'azione'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _mainFields.remove('Notes');
+                                    });
+                                    _notesController.clear();
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('Elimina'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('Annulla'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -735,7 +941,47 @@ class WebAccountPageState extends State<WebAccountPage> {
             const SizedBox(height: 16),
 
             // Additional fields
-            ...additionalFields.map((entry) => entry['widget']!),
+            ...additionalFields.map((entry) {
+              final labelWidget = entry['label'];
+              final fieldWidget = entry['widget'];
+              return Row(
+                key: ValueKey(labelWidget),
+                children: [
+                  Expanded(child: fieldWidget!),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Opzioni'),
+                            content: const Text('Scegli un\'azione'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    additionalFields.remove(entry);
+                                  });
+                                  Navigator.of(context).pop();
+                                },
+                                child: const Text('Elimina'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: const Text('Annulla'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              );
+            }),
 
             // Attach image and attach file buttons
             ElevatedButton(
