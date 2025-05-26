@@ -103,9 +103,8 @@ class IconSelector extends StatelessWidget {
             height: 350,
             child: SymbolFamiliesSelector(
               onSymbolSelected: (iconData, color) {
-                onSymbolSelected(iconData, color);
                 Navigator.of(context).pop();
-                _showSymbolColorSelectionDialog(context);
+                _showSymbolColorSelectionDialog(context, iconData);
               },
             ),
           ),
@@ -114,7 +113,10 @@ class IconSelector extends StatelessWidget {
     );
   }
 
-  void _showSymbolColorSelectionDialog(BuildContext context) {
+  void _showSymbolColorSelectionDialog(
+    BuildContext context,
+    IconData iconData,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -122,7 +124,7 @@ class IconSelector extends StatelessWidget {
           title: const Text('Select Symbol Color'),
           content: _buildColorGrid(
             onColorSelected: (color) {
-              onSymbolSelected(selectedSymbolIcon!, color);
+              onSymbolSelected(iconData, color);
               Navigator.of(context).pop();
             },
             selectedColor: selectedSymbolColor,

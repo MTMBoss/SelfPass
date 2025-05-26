@@ -61,12 +61,21 @@ class AccountFormState extends State<AccountForm> {
     'Applicazione',
   ];
 
+  void _onWebsiteChanged() {
+    if (_iconSelectionMode == 'Website Icon') {
+      setState(() {
+        // Trigger rebuild when website URL changes
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     if (widget.editingAccount != null) {
       _initializeWithAccount(widget.editingAccount!);
     }
+    _websiteController.addListener(_onWebsiteChanged);
   }
 
   void _initializeWithAccount(Account account) {
@@ -85,6 +94,7 @@ class AccountFormState extends State<AccountForm> {
     _titleController.dispose();
     _loginController.dispose();
     _passwordController.dispose();
+    _websiteController.removeListener(_onWebsiteChanged);
     _websiteController.dispose();
     _otpController.dispose();
     _notesController.dispose();
@@ -92,6 +102,13 @@ class AccountFormState extends State<AccountForm> {
   }
 
   void saveAccount() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
+      return;
+    }
+
     final accountToSave = Account(
       accountName: _titleController.text.trim(),
       username: _loginController.text.trim(),
@@ -101,14 +118,21 @@ class AccountFormState extends State<AccountForm> {
       symbolIcon: _selectedSymbolIcon,
       colorIcon: _selectedColorIcon ?? _selectedSymbolColor,
       customIconPath: null,
+      isFavorite: widget.editingAccount?.isFavorite ?? false,
     );
 
-    if (widget.editingAccount != null) {
-      _accountController.updateAccount(accountToSave);
-    } else {
-      _accountController.addAccount(accountToSave);
+    try {
+      if (widget.editingAccount != null) {
+        _accountController.updateAccount(accountToSave);
+      } else {
+        _accountController.addAccount(accountToSave);
+      }
+      Navigator.of(context).pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving account: ${e.toString()}')),
+      );
     }
-    Navigator.pop(context);
   }
 
   void _openPasswordGenerator() {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pages/homepage.dart';
-import 'pages/web_account_page.dart';
+import 'pages/web_account/web_account_page.dart';
 
 void main() {
   runApp(const MyApp());

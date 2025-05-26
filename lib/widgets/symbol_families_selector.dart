@@ -42,8 +42,9 @@ class SymbolFamiliesSelectorState extends State<SymbolFamiliesSelector> {
                     return IconButton(
                       icon: Icon(iconData, size: 32),
                       onPressed: () {
-                        widget.onSymbolSelected(iconData, null);
+                        widget.onSymbolSelected(iconData, Colors.black);
                       },
+                      color: Colors.black,
                     );
                   }).toList(),
             ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../pages/web_account_page.dart';
+import '../pages/web_account/web_account_page.dart';
 import '../pages/credit_card_page.dart';
 import '../pages/id_passport_page.dart';
 import '../pages/note_page.dart';
