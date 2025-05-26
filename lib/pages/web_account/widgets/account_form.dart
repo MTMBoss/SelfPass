@@ -33,7 +33,9 @@ class AccountFormState extends State<AccountForm> {
   Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
 
-  final List<String> _mainFields = [
+  List<Map<String, Widget>> additionalFields = [];
+  // Make enabledFields public so it can be accessed from WebAccountPage
+  List<String> enabledFields = [
     'Title',
     'Login',
     'Password',
@@ -41,9 +43,6 @@ class AccountFormState extends State<AccountForm> {
     'One-time password (2FA)',
     'Notes',
   ];
-
-  List<Map<String, Widget>> additionalFields = [];
-  List<String>? lastReorderedFields;
 
   static const List<String> fieldOptions = [
     'Testo',
@@ -87,6 +86,7 @@ class AccountFormState extends State<AccountForm> {
     _selectedSymbolIcon = account.symbolIcon;
     _selectedSymbolColor = account.colorIcon;
     _selectedColorIcon = account.colorIcon;
+    enabledFields = List.from(account.enabledFields);
   }
 
   @override
@@ -119,6 +119,7 @@ class AccountFormState extends State<AccountForm> {
       colorIcon: _selectedColorIcon ?? _selectedSymbolColor,
       customIconPath: null,
       isFavorite: widget.editingAccount?.isFavorite ?? false,
+      enabledFields: enabledFields,
     );
 
     try {
@@ -155,7 +156,7 @@ class AccountFormState extends State<AccountForm> {
 
   void _deleteField(String fieldName) {
     setState(() {
-      _mainFields.remove(fieldName);
+      enabledFields.remove(fieldName);
     });
   }
 
@@ -166,7 +167,7 @@ class AccountFormState extends State<AccountForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (String field in lastReorderedFields ?? _mainFields) ...[
+          for (String field in enabledFields) ...[
             if (field == 'Title') ...[
               Row(
                 children: [

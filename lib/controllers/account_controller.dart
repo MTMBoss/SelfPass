@@ -17,6 +17,14 @@ class AccountController extends ChangeNotifier {
       password: '••••••',
       website: 'https://www.google.com',
       iconMode: 'Website Icon',
+      enabledFields: const [
+        'Title',
+        'Login',
+        'Password',
+        'Website',
+        'One-time password (2FA)',
+        'Notes',
+      ],
     ),
     Account(
       accountName: 'Facebook',
@@ -24,6 +32,14 @@ class AccountController extends ChangeNotifier {
       password: '••••••',
       website: 'https://www.facebook.com',
       iconMode: 'Website Icon',
+      enabledFields: const [
+        'Title',
+        'Login',
+        'Password',
+        'Website',
+        'One-time password (2FA)',
+        'Notes',
+      ],
     ),
     Account(
       accountName: 'Twitter',
@@ -31,6 +47,14 @@ class AccountController extends ChangeNotifier {
       password: '••••••',
       website: 'https://www.twitter.com',
       iconMode: 'Website Icon',
+      enabledFields: const [
+        'Title',
+        'Login',
+        'Password',
+        'Website',
+        'One-time password (2FA)',
+        'Notes',
+      ],
     ),
     Account(
       accountName: 'Instagram',
@@ -38,6 +62,14 @@ class AccountController extends ChangeNotifier {
       password: '••••••',
       website: 'https://www.instagram.com',
       iconMode: 'Website Icon',
+      enabledFields: const [
+        'Title',
+        'Login',
+        'Password',
+        'Website',
+        'One-time password (2FA)',
+        'Notes',
+      ],
     ),
   ];
 
@@ -98,6 +130,7 @@ class AccountController extends ChangeNotifier {
         symbolIcon: updatedAccount.symbolIcon,
         colorIcon: updatedAccount.colorIcon,
         customIconPath: updatedAccount.customIconPath,
+        enabledFields: updatedAccount.enabledFields, // Preserve enabled fields
       );
       notifyListeners();
     } else {

@@ -43,14 +43,9 @@ class WebAccountPageState extends State<WebAccountPage> {
               switch (value) {
                 case 'organize_fields':
                   if (_formKey.currentState != null) {
-                    List<String> fieldsToOrganize = [
-                      'Title',
-                      'Login',
-                      'Password',
-                      'Website',
-                      'One-time password (2FA)',
-                      'Notes',
-                    ];
+                    List<String> fieldsToOrganize = List.from(
+                      _formKey.currentState!.enabledFields,
+                    );
                     // Add additional fields if any
                     for (var entry in _formKey.currentState!.additionalFields) {
                       final labelWidget = entry['label'];
@@ -70,10 +65,10 @@ class WebAccountPageState extends State<WebAccountPage> {
                                 OrganizeFieldsPage(fields: fieldsToOrganize),
                       ),
                     );
-                    if (reorderedFields != null) {
+                    if (reorderedFields != null &&
+                        _formKey.currentState != null) {
                       _formKey.currentState!.setState(() {
-                        _formKey.currentState!.lastReorderedFields =
-                            reorderedFields;
+                        _formKey.currentState!.enabledFields = reorderedFields;
                       });
                     }
                   }
