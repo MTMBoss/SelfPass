@@ -23,6 +23,7 @@ class _HomepageState extends State<Homepage>
   final Logger logger = Logger();
 
   final AccountController _accountController = AccountController();
+  final TextEditingController _searchController = TextEditingController();
 
   // Stato della query di ricerca
   String _searchQuery = '';
@@ -36,6 +37,7 @@ class _HomepageState extends State<Homepage>
   @override
   void dispose() {
     _accountController.removeListener(_onAccountsChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -73,6 +75,8 @@ class _HomepageState extends State<Homepage>
                 _searchQuery = value;
               });
             },
+            controller: _searchController,
+            initialValue: _searchQuery,
           ),
           FavoritesTab(
             favoriteAccounts: _accountController.filterFavoriteAccounts(
@@ -85,6 +89,8 @@ class _HomepageState extends State<Homepage>
                 _searchQuery = value;
               });
             },
+            controller: _searchController,
+            initialValue: _searchQuery,
           ),
           SettingsTab(
             onSearchChanged: (value) {
@@ -92,6 +98,8 @@ class _HomepageState extends State<Homepage>
                 _searchQuery = value;
               });
             },
+            controller: _searchController,
+            initialValue: _searchQuery,
           ),
           TicketsTab(
             onSearchChanged: (value) {
@@ -99,6 +107,8 @@ class _HomepageState extends State<Homepage>
                 _searchQuery = value;
               });
             },
+            controller: _searchController,
+            initialValue: _searchQuery,
           ),
         ],
       ),

@@ -8,6 +8,8 @@ class AllAccountsTab extends StatelessWidget {
   final String searchQuery;
   final ValueChanged<Account> onFavoriteToggle;
   final ValueChanged<String> onSearchChanged;
+  final TextEditingController? controller;
+  final String? initialValue;
 
   const AllAccountsTab({
     super.key,
@@ -15,13 +17,19 @@ class AllAccountsTab extends StatelessWidget {
     required this.searchQuery,
     required this.onFavoriteToggle,
     required this.onSearchChanged,
+    this.controller,
+    this.initialValue,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SearchField(onChanged: onSearchChanged),
+        SearchField(
+          onChanged: onSearchChanged,
+          controller: controller,
+          initialValue: initialValue,
+        ),
         Expanded(
           child: AccountList(
             accounts: accounts,
