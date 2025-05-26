@@ -219,9 +219,80 @@ class AccountFormState extends State<AccountForm> {
                 controller: _loginController,
                 decoration: InputDecoration(
                   labelText: 'Login',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => _deleteField('Login'),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Account icon button that shows registered accounts
+                      IconButton(
+                        icon: const Icon(Icons.person_outline),
+                        onPressed: () {
+                          final accounts = _accountController.accounts;
+                          if (accounts.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('No accounts registered'),
+                              ),
+                            );
+                            return;
+                          }
+                          final RenderBox button =
+                              context.findRenderObject() as RenderBox;
+                          final RenderBox overlay =
+                              Overlay.of(context).context.findRenderObject()
+                                  as RenderBox;
+                          final RelativeRect position = RelativeRect.fromRect(
+                            Rect.fromPoints(
+                              button.localToGlobal(
+                                Offset.zero,
+                                ancestor: overlay,
+                              ),
+                              button.localToGlobal(
+                                button.size.bottomRight(Offset.zero),
+                                ancestor: overlay,
+                              ),
+                            ),
+                            Offset.zero & overlay.size,
+                          );
+
+                          showMenu<Account>(
+                            context: context,
+                            position: position,
+                            items:
+                                accounts.map((account) {
+                                  return PopupMenuItem<Account>(
+                                    value: account,
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.account_circle,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            account.username,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                          ).then((selectedAccount) {
+                            if (selectedAccount != null) {
+                              setState(() {
+                                _loginController.text =
+                                    selectedAccount.username;
+                              });
+                            }
+                          });
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => _deleteField('Login'),
+                      ),
+                    ],
                   ),
                 ),
               ),
