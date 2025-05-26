@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../controllers/account_controller.dart';
 import '../../../models/account.dart';
+import '../../../helpers/password_strength_helper.dart';
 import '../../../widgets/password_generator_dialog.dart';
 import 'password_field.dart';
 import 'icon_selector.dart';
@@ -25,9 +26,9 @@ class AccountFormState extends State<AccountForm> {
   final AccountController _accountController = AccountController();
 
   bool _passwordVisible = false;
-  final double _passwordStrength = 0;
-  final String _passwordStrengthLabel = '';
-  final String _passwordCrackTime = '';
+  double _passwordStrength = 0;
+  String _passwordStrengthLabel = '';
+  String _passwordCrackTime = '';
   String _iconSelectionMode = 'Website Icon';
   IconData? _selectedSymbolIcon;
   Color? _selectedSymbolColor;
@@ -60,6 +61,19 @@ class AccountFormState extends State<AccountForm> {
     'Applicazione',
   ];
 
+  void _onPasswordChanged() {
+    final password = _passwordController.text;
+    setState(() {
+      _passwordStrength = PasswordStrengthHelper.calculatePasswordStrength(
+        password,
+      );
+      _passwordStrengthLabel = PasswordStrengthHelper.getStrengthLabel(
+        _passwordStrength,
+      );
+      _passwordCrackTime = PasswordStrengthHelper.estimateCrackTime(password);
+    });
+  }
+
   void _onWebsiteChanged() {
     if (_iconSelectionMode == 'Website Icon') {
       setState(() {
@@ -75,6 +89,7 @@ class AccountFormState extends State<AccountForm> {
       _initializeWithAccount(widget.editingAccount!);
     }
     _websiteController.addListener(_onWebsiteChanged);
+    _passwordController.addListener(_onPasswordChanged);
   }
 
   void _initializeWithAccount(Account account) {
@@ -95,6 +110,7 @@ class AccountFormState extends State<AccountForm> {
     _loginController.dispose();
     _passwordController.dispose();
     _websiteController.removeListener(_onWebsiteChanged);
+    _passwordController.removeListener(_onPasswordChanged);
     _websiteController.dispose();
     _otpController.dispose();
     _notesController.dispose();
@@ -124,7 +140,11 @@ class AccountFormState extends State<AccountForm> {
 
     try {
       if (widget.editingAccount != null) {
-        _accountController.updateAccount(accountToSave);
+        // Pass the existing account's id when updating
+        final updatedAccount = accountToSave.copyWith(
+          id: widget.editingAccount!.id,
+        );
+        _accountController.updateAccount(updatedAccount);
       } else {
         _accountController.addAccount(accountToSave);
       }

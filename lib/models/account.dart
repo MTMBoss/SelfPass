@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 class Account {
+  final String id;
   final String accountName;
   final String username;
   final String password;
@@ -17,6 +19,7 @@ class Account {
   final List<String> enabledFields;
 
   Account({
+    String? id,
     required this.accountName,
     required this.username,
     required this.password,
@@ -27,7 +30,8 @@ class Account {
     this.colorIcon,
     this.customIconPath,
     List<String>? enabledFields,
-  }) : enabledFields =
+  }) : id = id ?? const Uuid().v4(),
+       enabledFields =
            enabledFields ??
            [
              'Title',
@@ -39,6 +43,7 @@ class Account {
            ];
 
   Account copyWith({
+    String? id,
     String? accountName,
     String? username,
     String? password,
@@ -51,6 +56,7 @@ class Account {
     List<String>? enabledFields,
   }) {
     return Account(
+      id: id ?? this.id,
       accountName: accountName ?? this.accountName,
       username: username ?? this.username,
       password: password ?? this.password,

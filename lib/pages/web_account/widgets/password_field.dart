@@ -54,18 +54,23 @@ class PasswordField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: passwordStrength,
-          backgroundColor: Colors.grey[300],
-          color: _getStrengthColor(passwordStrength),
-          minHeight: 6,
-        ),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(passwordStrengthLabel),
-            Text('Crack time: $passwordCrackTime'),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: passwordStrength,
+                backgroundColor: Colors.grey[300],
+                color: _getStrengthColor(passwordStrength),
+                minHeight: 4,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Crack time: $passwordCrackTime',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
           ],
         ),
       ],

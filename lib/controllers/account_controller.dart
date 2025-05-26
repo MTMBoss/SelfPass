@@ -100,8 +100,11 @@ class AccountController extends ChangeNotifier {
   }
 
   void toggleFavorite(Account account) {
-    account.isFavorite = !account.isFavorite;
-    notifyListeners();
+    final index = accounts.indexWhere((a) => a.id == account.id);
+    if (index != -1) {
+      accounts[index].isFavorite = !accounts[index].isFavorite;
+      notifyListeners();
+    }
   }
 
   void addAccount(Account account) {
@@ -110,32 +113,12 @@ class AccountController extends ChangeNotifier {
   }
 
   void updateAccount(Account updatedAccount) {
-    // Find the account by comparing name and username
-    final index = accounts.indexWhere(
-      (a) =>
-          a.accountName == updatedAccount.accountName &&
-          a.username == updatedAccount.username,
-    );
-
+    final index = accounts.indexWhere((a) => a.id == updatedAccount.id);
     if (index != -1) {
-      // Preserve the favorite state from the existing account
-      final existingAccount = accounts[index];
-      accounts[index] = Account(
-        accountName: updatedAccount.accountName,
-        username: updatedAccount.username,
-        password: updatedAccount.password,
-        website: updatedAccount.website,
-        isFavorite: existingAccount.isFavorite, // Preserve favorite state
-        iconMode: updatedAccount.iconMode,
-        symbolIcon: updatedAccount.symbolIcon,
-        colorIcon: updatedAccount.colorIcon,
-        customIconPath: updatedAccount.customIconPath,
-        enabledFields: updatedAccount.enabledFields, // Preserve enabled fields
+      accounts[index] = updatedAccount.copyWith(
+        isFavorite: accounts[index].isFavorite,
       );
       notifyListeners();
-    } else {
-      // If account not found, add as new
-      addAccount(updatedAccount);
     }
   }
 }
