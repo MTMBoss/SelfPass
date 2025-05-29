@@ -34,7 +34,8 @@ class AccountFormState extends State<AccountForm> {
   Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
 
-  List<Map<String, Widget>> additionalFields = [];
+  // Change additionalFields to store label, widget, and controller
+  List<Map<String, dynamic>> additionalFields = [];
   // Make enabledFields public so it can be accessed from WebAccountPage
   List<String> enabledFields = [
     'Title',
@@ -114,6 +115,12 @@ class AccountFormState extends State<AccountForm> {
     _websiteController.dispose();
     _otpController.dispose();
     _notesController.dispose();
+    for (var entry in additionalFields) {
+      final controller = entry['controller'];
+      if (controller is TextEditingController) {
+        controller.dispose();
+      }
+    }
     super.dispose();
   }
 
@@ -396,17 +403,23 @@ class AccountFormState extends State<AccountForm> {
           PopupMenuButton<String>(
             onSelected: (String selectedOption) {
               setState(() {
+                TextEditingController? controller;
+                if (selectedOption == 'Login' || selectedOption == 'Email') {
+                  controller = TextEditingController();
+                }
                 additionalFields.add({
                   'label': Text(selectedOption),
                   'widget': Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: TextFormField(
+                      controller: controller,
                       decoration: InputDecoration(
                         labelText: selectedOption,
                         border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
+                  'controller': controller,
                 });
               });
             },
@@ -440,18 +453,116 @@ class AccountFormState extends State<AccountForm> {
           ...additionalFields.map((entry) {
             final labelWidget = entry['label'];
             final fieldWidget = entry['widget'];
+            Widget fieldWithIcon = fieldWidget!;
+            if (labelWidget is Text &&
+                (labelWidget.data == 'Email' || labelWidget.data == 'Login')) {
+              // Wrap the TextFormField with suffixIcon containing the "omino" icon button
+              final TextEditingController? controller = entry['controller'];
+              fieldWithIcon = Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    labelText: labelWidget.data,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.person_outline),
+                          onPressed: () {
+                            final accounts = _accountController.accounts;
+                            if (accounts.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('No accounts registered'),
+                                ),
+                              );
+                              return;
+                            }
+                            final RenderBox button =
+                                context.findRenderObject() as RenderBox;
+                            final RenderBox overlay =
+                                Overlay.of(context).context.findRenderObject()
+                                    as RenderBox;
+                            final RelativeRect position = RelativeRect.fromRect(
+                              Rect.fromPoints(
+                                button.localToGlobal(
+                                  Offset.zero,
+                                  ancestor: overlay,
+                                ),
+                                button.localToGlobal(
+                                  button.size.bottomRight(Offset.zero),
+                                  ancestor: overlay,
+                                ),
+                              ),
+                              Offset.zero & overlay.size,
+                            );
+
+                            showMenu<Account>(
+                              context: context,
+                              position: position,
+                              items:
+                                  accounts.map((account) {
+                                    return PopupMenuItem<Account>(
+                                      value: account,
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.account_circle,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              account.username,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                            ).then((selectedAccount) {
+                              if (selectedAccount != null) {
+                                setState(() {
+                                  if (controller != null) {
+                                    controller.text = selectedAccount.username;
+                                  }
+                                });
+                              }
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              additionalFields.remove(entry);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
             return Row(
               key: ValueKey(labelWidget),
               children: [
-                Expanded(child: fieldWidget!),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    setState(() {
-                      additionalFields.remove(entry);
-                    });
-                  },
-                ),
+                Expanded(child: fieldWithIcon),
+                if (!(labelWidget is Text &&
+                    (labelWidget.data == 'Email' ||
+                        labelWidget.data == 'Login')))
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      setState(() {
+                        additionalFields.remove(entry);
+                      });
+                    },
+                  ),
               ],
             );
           }),
