@@ -23,6 +23,10 @@ class AccountFormState extends State<AccountForm> {
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
+  // New controllers for Scadenza and Data fields
+  final TextEditingController _scadenzaController = TextEditingController();
+  final TextEditingController _dataController = TextEditingController();
+
   final AccountController _accountController = AccountController();
 
   bool _passwordVisible = false;
@@ -45,6 +49,15 @@ class AccountFormState extends State<AccountForm> {
     'One-time password (2FA)',
     'Notes',
   ];
+
+  // Helper method to convert dd/MM/yyyy string to yyyy-MM-dd for DateTime.parse
+  String _formatDateForParse(String dateStr) {
+    final parts = dateStr.split('/');
+    if (parts.length == 3) {
+      return '${parts[2]}-${parts[1]}-${parts[0]}';
+    }
+    return dateStr;
+  }
 
   static const List<String> fieldOptions = [
     'Testo',
@@ -115,6 +128,11 @@ class AccountFormState extends State<AccountForm> {
     _websiteController.dispose();
     _otpController.dispose();
     _notesController.dispose();
+
+    // Dispose new controllers
+    _scadenzaController.dispose();
+    _dataController.dispose();
+
     for (var entry in additionalFields) {
       final controller = entry['controller'];
       if (controller is TextEditingController) {
@@ -357,6 +375,80 @@ class AccountFormState extends State<AccountForm> {
               ),
               const SizedBox(height: 16),
             ],
+            if (field == 'Scadenza') ...[
+              TextFormField(
+                controller: _scadenzaController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Scadenza',
+                  border: const UnderlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () async {
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate:
+                            _scadenzaController.text.isNotEmpty
+                                ? DateTime.tryParse(
+                                      _formatDateForParse(
+                                        _scadenzaController.text,
+                                      ),
+                                    ) ??
+                                    DateTime.now()
+                                : DateTime.now(),
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime(2100),
+                      );
+                      if (pickedDate != null) {
+                        setState(() {
+                          _scadenzaController.text =
+                              "${pickedDate.day.toString().padLeft(2, '0')}/"
+                              "${pickedDate.month.toString().padLeft(2, '0')}/"
+                              "${pickedDate.year}";
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (field == 'Data') ...[
+              TextFormField(
+                controller: _dataController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Data',
+                  border: const UnderlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () async {
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate:
+                            _dataController.text.isNotEmpty
+                                ? DateTime.tryParse(
+                                      _formatDateForParse(_dataController.text),
+                                    ) ??
+                                    DateTime.now()
+                                : DateTime.now(),
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime(2100),
+                      );
+                      if (pickedDate != null) {
+                        setState(() {
+                          _dataController.text =
+                              "${pickedDate.day.toString().padLeft(2, '0')}/"
+                              "${pickedDate.month.toString().padLeft(2, '0')}/"
+                              "${pickedDate.year}";
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             if (field == 'One-time password (2FA)') ...[
               TextFormField(
                 controller: _otpController,
@@ -404,7 +496,10 @@ class AccountFormState extends State<AccountForm> {
             onSelected: (String selectedOption) {
               setState(() {
                 TextEditingController? controller;
-                if (selectedOption == 'Login' || selectedOption == 'Email') {
+                if (selectedOption == 'Login' ||
+                    selectedOption == 'Email' ||
+                    selectedOption == 'Scadenza' ||
+                    selectedOption == 'Data') {
                   controller = TextEditingController();
                 }
                 additionalFields.add({
@@ -543,6 +638,48 @@ class AccountFormState extends State<AccountForm> {
                           },
                         ),
                       ],
+                    ),
+                  ),
+                ),
+              );
+            } else if (labelWidget is Text &&
+                (labelWidget.data == 'Scadenza' ||
+                    labelWidget.data == 'Data')) {
+              final TextEditingController? controller = entry['controller'];
+              fieldWithIcon = Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  controller: controller,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: labelWidget.data,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: () async {
+                        final DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate:
+                              controller != null && controller.text.isNotEmpty
+                                  ? DateTime.tryParse(
+                                        _formatDateForParse(controller.text),
+                                      ) ??
+                                      DateTime.now()
+                                  : DateTime.now(),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime(2100),
+                        );
+                        if (pickedDate != null) {
+                          setState(() {
+                            if (controller != null) {
+                              controller.text =
+                                  "${pickedDate.day.toString().padLeft(2, '0')}/"
+                                  "${pickedDate.month.toString().padLeft(2, '0')}/"
+                                  "${pickedDate.year}";
+                            }
+                          });
+                        }
+                      },
                     ),
                   ),
                 ),
