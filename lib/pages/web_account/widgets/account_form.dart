@@ -23,7 +23,7 @@ class AccountFormState extends State<AccountForm> {
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
-  // New controllers for Scadenza and Data fields
+  // Nuovi controller per i campi Scadenza e Data
   final TextEditingController _scadenzaController = TextEditingController();
   final TextEditingController _dataController = TextEditingController();
 
@@ -38,9 +38,18 @@ class AccountFormState extends State<AccountForm> {
   Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
 
-  // Change additionalFields to store label, widget, and controller
-  List<Map<String, dynamic>> additionalFields = [];
-  // Make enabledFields public so it can be accessed from WebAccountPage
+  // Definiamo i campi obbligatori che non devono essere rimossi
+  final List<String> mandatoryFields = [
+    'Title',
+    'Login',
+    'Password',
+    'Website',
+    'One-time password (2FA)',
+    'Notes',
+  ];
+
+  // Lista unica in cui gestiamo sia i campi predefiniti che quelli aggiunti.
+  // Inizialmente contiene i campi obbligatori.
   List<String> enabledFields = [
     'Title',
     'Login',
@@ -50,7 +59,10 @@ class AccountFormState extends State<AccountForm> {
     'Notes',
   ];
 
-  // Helper method to convert dd/MM/yyyy string to yyyy-MM-dd for DateTime.parse
+  // Per i campi aggiuntivi memorizziamo anche il widget e il controller
+  List<Map<String, dynamic>> additionalFields = [];
+
+  // Helper per convertire una data dal formato dd/MM/yyyy in yyyy-MM-dd (per DateTime.parse)
   String _formatDateForParse(String dateStr) {
     final parts = dateStr.split('/');
     if (parts.length == 3) {
@@ -91,7 +103,7 @@ class AccountFormState extends State<AccountForm> {
   void _onWebsiteChanged() {
     if (_iconSelectionMode == 'Website Icon') {
       setState(() {
-        // Trigger rebuild when website URL changes
+        // Trigger per il rebuild quando l’URL cambia
       });
     }
   }
@@ -106,6 +118,8 @@ class AccountFormState extends State<AccountForm> {
     _passwordController.addListener(_onPasswordChanged);
   }
 
+  // Nel caricamento dell’account in edit ricostruiamo enabledFields e ricaviamo
+  // anche la lista additionalFields per i campi extra non standard.
   void _initializeWithAccount(Account account) {
     _titleController.text = account.accountName;
     _loginController.text = account.username;
@@ -115,7 +129,47 @@ class AccountFormState extends State<AccountForm> {
     _selectedSymbolIcon = account.symbolIcon;
     _selectedSymbolColor = account.colorIcon;
     _selectedColorIcon = account.colorIcon;
-    enabledFields = List.from(account.enabledFields);
+    // Inizializza enabledFields con i campi obbligatori
+    enabledFields = List.from(mandatoryFields);
+    // Aggiungi eventuali campi salvati che non sono obbligatori
+    for (var field in account.enabledFields) {
+      if (!mandatoryFields.contains(field)) {
+        enabledFields.add(field);
+      }
+    }
+    // Per ricostruire i widget dei campi aggiuntivi, definiamo un elenco dei campi standard
+    // per cui abbiamo già dei widget predefiniti
+    List<String> standardFields = [
+      'Title',
+      'Login',
+      'Password',
+      'Website',
+      'Scadenza',
+      'Data',
+      'One-time password (2FA)',
+      'Notes',
+    ];
+    additionalFields = [];
+    for (var field in enabledFields) {
+      if (!standardFields.contains(field)) {
+        // Per ciascun campo extra, creiamo un controller (inizialmente vuoto)
+        TextEditingController controller = TextEditingController();
+        additionalFields.add({
+          'label': Text(field),
+          'controller': controller,
+          'widget': Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: TextFormField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: field,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+        });
+      }
+    }
   }
 
   @override
@@ -128,11 +182,8 @@ class AccountFormState extends State<AccountForm> {
     _websiteController.dispose();
     _otpController.dispose();
     _notesController.dispose();
-
-    // Dispose new controllers
     _scadenzaController.dispose();
     _dataController.dispose();
-
     for (var entry in additionalFields) {
       final controller = entry['controller'];
       if (controller is TextEditingController) {
@@ -165,7 +216,6 @@ class AccountFormState extends State<AccountForm> {
 
     try {
       if (widget.editingAccount != null) {
-        // Pass the existing account's id when updating
         final updatedAccount = accountToSave.copyWith(
           id: widget.editingAccount!.id,
         );
@@ -199,9 +249,12 @@ class AccountFormState extends State<AccountForm> {
     );
   }
 
+  // Permette di eliminare un campo extra (solo se non è obbligatorio)
   void _deleteField(String fieldName) {
     setState(() {
-      enabledFields.remove(fieldName);
+      if (!mandatoryFields.contains(fieldName)) {
+        enabledFields.remove(fieldName);
+      }
     });
   }
 
@@ -212,6 +265,7 @@ class AccountFormState extends State<AccountForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Visualizza i campi standard in base a enabledFields
           for (String field in enabledFields) ...[
             if (field == 'Title') ...[
               Row(
@@ -222,10 +276,13 @@ class AccountFormState extends State<AccountForm> {
                       decoration: InputDecoration(
                         labelText: 'Title',
                         border: const UnderlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => _deleteField('Title'),
-                        ),
+                        suffixIcon:
+                            mandatoryFields.contains('Title')
+                                ? null
+                                : IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => _deleteField('Title'),
+                                ),
                       ),
                     ),
                   ),
@@ -265,81 +322,13 @@ class AccountFormState extends State<AccountForm> {
                 controller: _loginController,
                 decoration: InputDecoration(
                   labelText: 'Login',
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Account icon button that shows registered accounts
-                      IconButton(
-                        icon: const Icon(Icons.person_outline),
-                        onPressed: () {
-                          final accounts = _accountController.accounts;
-                          if (accounts.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('No accounts registered'),
-                              ),
-                            );
-                            return;
-                          }
-                          final RenderBox button =
-                              context.findRenderObject() as RenderBox;
-                          final RenderBox overlay =
-                              Overlay.of(context).context.findRenderObject()
-                                  as RenderBox;
-                          final RelativeRect position = RelativeRect.fromRect(
-                            Rect.fromPoints(
-                              button.localToGlobal(
-                                Offset.zero,
-                                ancestor: overlay,
-                              ),
-                              button.localToGlobal(
-                                button.size.bottomRight(Offset.zero),
-                                ancestor: overlay,
-                              ),
-                            ),
-                            Offset.zero & overlay.size,
-                          );
-
-                          showMenu<Account>(
-                            context: context,
-                            position: position,
-                            items:
-                                accounts.map((account) {
-                                  return PopupMenuItem<Account>(
-                                    value: account,
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.account_circle,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            account.username,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                          ).then((selectedAccount) {
-                            if (selectedAccount != null) {
-                              setState(() {
-                                _loginController.text =
-                                    selectedAccount.username;
-                              });
-                            }
-                          });
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => _deleteField('Login'),
-                      ),
-                    ],
-                  ),
+                  suffixIcon:
+                      mandatoryFields.contains('Login')
+                          ? null
+                          : IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _deleteField('Login'),
+                          ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -367,10 +356,13 @@ class AccountFormState extends State<AccountForm> {
                 decoration: InputDecoration(
                   labelText: 'Website',
                   border: const UnderlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => _deleteField('Website'),
-                  ),
+                  suffixIcon:
+                      mandatoryFields.contains('Website')
+                          ? null
+                          : IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _deleteField('Website'),
+                          ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -454,22 +446,14 @@ class AccountFormState extends State<AccountForm> {
                 controller: _otpController,
                 decoration: InputDecoration(
                   labelText: 'One-time password (2FA)',
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.qr_code),
-                        onPressed: () {
-                          // QR code scanning functionality
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed:
-                            () => _deleteField('One-time password (2FA)'),
-                      ),
-                    ],
-                  ),
+                  suffixIcon:
+                      mandatoryFields.contains('One-time password (2FA)')
+                          ? null
+                          : IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed:
+                                () => _deleteField('One-time password (2FA)'),
+                          ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -481,20 +465,25 @@ class AccountFormState extends State<AccountForm> {
                 decoration: InputDecoration(
                   labelText: 'Notes',
                   border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => _deleteField('Notes'),
-                  ),
+                  suffixIcon:
+                      mandatoryFields.contains('Notes')
+                          ? null
+                          : IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _deleteField('Notes'),
+                          ),
                 ),
               ),
               const SizedBox(height: 16),
             ],
           ],
-
-          // Add another field button
+          // Popup per aggiungere un nuovo campo
           PopupMenuButton<String>(
             onSelected: (String selectedOption) {
               setState(() {
+                if (!enabledFields.contains(selectedOption)) {
+                  enabledFields.add(selectedOption);
+                }
                 TextEditingController? controller;
                 if (selectedOption == 'Login' ||
                     selectedOption == 'Email' ||
@@ -543,15 +532,13 @@ class AccountFormState extends State<AccountForm> {
               ),
             ),
           ),
-
-          // Additional fields
+          // Visualizza i widget dei campi aggiuntivi ricostruiti
           ...additionalFields.map((entry) {
             final labelWidget = entry['label'];
             final fieldWidget = entry['widget'];
             Widget fieldWithIcon = fieldWidget!;
             if (labelWidget is Text &&
                 (labelWidget.data == 'Email' || labelWidget.data == 'Login')) {
-              // Wrap the TextFormField with suffixIcon containing the "omino" icon button
               final TextEditingController? controller = entry['controller'];
               fieldWithIcon = Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -593,7 +580,6 @@ class AccountFormState extends State<AccountForm> {
                               ),
                               Offset.zero & overlay.size,
                             );
-
                             showMenu<Account>(
                               context: context,
                               position: position,
@@ -634,6 +620,9 @@ class AccountFormState extends State<AccountForm> {
                           onPressed: () {
                             setState(() {
                               additionalFields.remove(entry);
+                              if (labelWidget.data != null) {
+                                enabledFields.remove(labelWidget.data);
+                              }
                             });
                           },
                         ),
@@ -697,6 +686,9 @@ class AccountFormState extends State<AccountForm> {
                     onPressed: () {
                       setState(() {
                         additionalFields.remove(entry);
+                        if (labelWidget.data != null) {
+                          enabledFields.remove(labelWidget.data);
+                        }
                       });
                     },
                   ),
