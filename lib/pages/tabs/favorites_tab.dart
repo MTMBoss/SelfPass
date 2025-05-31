@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/account.dart';
-import '../../widgets/account_list.dart';
+import '../../widgets/account/account_list.dart';
 import '../../widgets/search_field.dart';
 
 class FavoritesTab extends StatelessWidget {

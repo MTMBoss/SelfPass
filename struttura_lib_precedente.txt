@@ -1,34 +1,68 @@
 
-### Aggiornato il 05/19/2025 00:36:55 ###
+### Aggiornato il 05/31/2025 13:50:07 ###
 
 Elenco del percorso delle cartelle
 Numero di serie del volume: 6EB3-501E
 C:\PROGRAMMAZIONE\SELFPASS\LIB
 |   main.dart
 |   
++---controllers
+|       account_controller.dart
+|       web_account_form_controller.dart
+|       
++---helpers
+|       password_strength_helper.dart
+|       text_highlight_helper.dart
+|       
 +---models
 |       account.dart
 |       
 +---pages
-|       another_page.dart
-|       credit_card_page.dart
-|       homepage.dart
-|       id_passport_page.dart
-|       note_page.dart
-|       web_account_page.dart
+|   |   another_page.dart
+|   |   credit_card_page.dart
+|   |   homepage.dart
+|   |   id_passport_page.dart
+|   |   note_page.dart
+|   |   organize_fields_page.dart
+|   |   
+|   +---tabs
+|   |       all_accounts_tab.dart
+|   |       favorites_tab.dart
+|   |       settings_tab.dart
+|   |       tickets_tab.dart
+|   |       
+|   \---web_account
+|       |   web_account_page.dart
+|       |   
+|       \---widgets
+|               account_form.dart
+|               icon_selector.dart
+|               password_field.dart
+|               
++---services
+|       icon_service.dart
 |       
 \---widgets
-        account_card.dart
-        account_list.dart
-        custom_app_bar.dart
-        custom_bottom_navigation_bar.dart
-        custom_drawer.dart
-        search_field.dart
-        
+    |   custom_app_bar.dart
+    |   custom_bottom_navigation_bar.dart
+    |   custom_drawer.dart
+    |   floating_action_menu.dart
+    |   floating_menu.dart
+    |   password_generator_dialog.dart
+    |   search_field.dart
+    |   symbol_data.dart
+    |   symbol_families_selector.dart
+    |   
+    \---account
+            account_card.dart
+            account_icon.dart
+            account_list.dart
+            
 
 C:\Programmazione\selfpass\lib\main.dart:
 import 'package:flutter/material.dart';
 import 'pages/homepage.dart';
+import 'pages/web_account/web_account_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -44,25 +78,382 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const Homepage(),
+      onGenerateRoute: (settings) {
+        if (settings.name == '/editAccount') {
+          return MaterialPageRoute(
+            builder: (context) => const WebAccountPage(),
+            settings: settings,
+          );
+        }
+        return null;
+      },
     );
   }
 }
 
 
+C:\Programmazione\selfpass\lib\controllers\account_controller.dart:
+import 'package:flutter/foundation.dart';
+import '../models/account.dart';
+
+class AccountController extends ChangeNotifier {
+  static final AccountController _instance = AccountController._internal();
+
+  factory AccountController() {
+    return _instance;
+  }
+
+  AccountController._internal();
+
+  List<Account> accounts = [
+    Account(
+      accountName: 'Google',
+      username: 'user@gmail.com',
+      password: '••••••',
+      website: 'https://www.google.com',
+      iconMode: 'Website Icon',
+      enabledFields: const [
+        'Title',
+        'Login',
+        'Password',
+        'Website',
+        'One-time password (2FA)',
+        'Notes',
+      ],
+    ),
+    Account(
+      accountName: 'Facebook',
+      username: 'user@facebook.com',
+      password: '••••••',
+      website: 'https://www.facebook.com',
+      iconMode: 'Website Icon',
+      enabledFields: const [
+        'Title',
+        'Login',
+        'Password',
+        'Website',
+        'One-time password (2FA)',
+        'Notes',
+      ],
+    ),
+    Account(
+      accountName: 'Twitter',
+      username: 'user@twitter.com',
+      password: '••••••',
+      website: 'https://www.twitter.com',
+      iconMode: 'Website Icon',
+      enabledFields: const [
+        'Title',
+        'Login',
+        'Password',
+        'Website',
+        'One-time password (2FA)',
+        'Notes',
+      ],
+    ),
+    Account(
+      accountName: 'Instagram',
+      username: 'user@instagram.com',
+      password: '••••••',
+      website: 'https://www.instagram.com',
+      iconMode: 'Website Icon',
+      enabledFields: const [
+        'Title',
+        'Login',
+        'Password',
+        'Website',
+        'One-time password (2FA)',
+        'Notes',
+      ],
+    ),
+  ];
+
+  List<Account> get favoriteAccounts =>
+      accounts.where((account) => account.isFavorite).toList();
+
+  List<Account> filterAccounts(String query) {
+    if (query.isEmpty) {
+      return accounts;
+    }
+    final lowerQuery = query.toLowerCase();
+    return accounts.where((account) {
+      return account.accountName.toLowerCase().contains(lowerQuery) ||
+          account.username.toLowerCase().contains(lowerQuery);
+    }).toList();
+  }
+
+  List<Account> filterFavoriteAccounts(String query) {
+    final favorites = favoriteAccounts;
+    if (query.isEmpty) {
+      return favorites;
+    }
+    final lowerQuery = query.toLowerCase();
+    return favorites.where((account) {
+      return account.accountName.toLowerCase().contains(lowerQuery) ||
+          account.username.toLowerCase().contains(lowerQuery);
+    }).toList();
+  }
+
+  void toggleFavorite(Account account) {
+    final index = accounts.indexWhere((a) => a.id == account.id);
+    if (index != -1) {
+      accounts[index].isFavorite = !accounts[index].isFavorite;
+      notifyListeners();
+    }
+  }
+
+  void addAccount(Account account) {
+    accounts.add(account);
+    notifyListeners();
+  }
+
+  void updateAccount(Account updatedAccount) {
+    final index = accounts.indexWhere((a) => a.id == updatedAccount.id);
+    if (index != -1) {
+      accounts[index] = updatedAccount.copyWith(
+        isFavorite: accounts[index].isFavorite,
+      );
+      notifyListeners();
+    }
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\controllers\web_account_form_controller.dart:
+import 'package:flutter/material.dart';
+import '../models/account.dart';
+
+class WebAccountFormController extends ChangeNotifier {
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController loginController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController websiteController = TextEditingController();
+  final TextEditingController otpController = TextEditingController();
+  final TextEditingController notesController = TextEditingController();
+
+  Account? editingAccount;
+  bool passwordVisible = false;
+  double passwordStrength = 0;
+  String passwordStrengthLabel = '';
+  String passwordCrackTime = '';
+  String iconSelectionMode = 'Website Icon';
+  IconData? selectedSymbolIcon;
+  Color? selectedSymbolColor;
+  Color? selectedColorIcon;
+  String? selectedCustomIconPath;
+
+  List<String> mainFields = [
+    'Title',
+    'Login',
+    'Password',
+    'Website',
+    'One-time password (2FA)',
+    'Notes',
+  ];
+
+  List<Map<String, Widget>> additionalFields = [];
+  List<String>? lastReorderedFields;
+
+  void setEditingAccount(Account? account) {
+    if (account != null) {
+      editingAccount = account;
+      titleController.text = account.accountName;
+      loginController.text = account.username;
+      passwordController.text = account.password;
+      websiteController.text = account.website;
+      iconSelectionMode = account.iconMode;
+      selectedSymbolIcon = account.symbolIcon;
+      selectedSymbolColor = account.colorIcon;
+      selectedColorIcon = account.colorIcon;
+      selectedCustomIconPath = account.customIconPath;
+      notifyListeners();
+    }
+  }
+
+  void togglePasswordVisibility() {
+    passwordVisible = !passwordVisible;
+    notifyListeners();
+  }
+
+  void updateIconMode(String mode) {
+    iconSelectionMode = mode;
+    notifyListeners();
+  }
+
+  void updateSymbolIcon(IconData icon, Color? color) {
+    selectedSymbolIcon = icon;
+    selectedSymbolColor = color;
+    selectedColorIcon = null;
+    notifyListeners();
+  }
+
+  void updateColorIcon(Color color) {
+    selectedColorIcon = color;
+    selectedSymbolIcon = null;
+    selectedSymbolColor = null;
+    notifyListeners();
+  }
+
+  void reorderFields(List<String> newOrder) {
+    lastReorderedFields = newOrder;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    loginController.dispose();
+    passwordController.dispose();
+    websiteController.dispose();
+    otpController.dispose();
+    notesController.dispose();
+    super.dispose();
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\helpers\password_strength_helper.dart:
+class PasswordStrengthHelper {
+  static double calculatePasswordStrength(String password) {
+    if (password.isEmpty) return 0;
+    double strength = 0;
+    if (password.length >= 8) strength += 0.25;
+    if (RegExp(r'[A-Z]').hasMatch(password)) strength += 0.25;
+    if (RegExp(r'[0-9]').hasMatch(password)) strength += 0.25;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) strength += 0.25;
+    return strength.clamp(0, 1);
+  }
+
+  static String getStrengthLabel(double strength) {
+    if (strength == 0) return '';
+    if (strength < 0.5) return 'Weak';
+    if (strength < 0.75) return 'Medium';
+    return 'Strong';
+  }
+
+  static String estimateCrackTime(String password) {
+    if (password.isEmpty) return '';
+    int baseTime = password.length * 1000; // milliseconds
+    if (RegExp(r'[A-Z]').hasMatch(password)) baseTime *= 2;
+    if (RegExp(r'[0-9]').hasMatch(password)) baseTime *= 2;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) baseTime *= 3;
+
+    if (baseTime < 10000) return 'Seconds';
+    if (baseTime < 60000) return 'Minutes';
+    if (baseTime < 3600000) return 'Hours';
+    if (baseTime < 86400000) return 'Days';
+    if (baseTime < 31536000000) return 'Years';
+    return 'Centuries';
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\helpers\text_highlight_helper.dart:
+import 'package:flutter/material.dart';
+
+List<TextSpan> highlightOccurrences(String text, String query) {
+  if (query.isEmpty) {
+    return [TextSpan(text: text)];
+  }
+
+  final List<TextSpan> spans = [];
+  final lowerText = text.toLowerCase();
+  final lowerQuery = query.toLowerCase();
+  int start = 0;
+  int index = lowerText.indexOf(lowerQuery);
+
+  while (index != -1) {
+    if (index > start) {
+      spans.add(TextSpan(text: text.substring(start, index)));
+    }
+    spans.add(
+      TextSpan(
+        text: text.substring(index, index + query.length),
+        style: const TextStyle(backgroundColor: Colors.yellow),
+      ),
+    );
+    start = index + query.length;
+    index = lowerText.indexOf(lowerQuery, start);
+  }
+  if (start < text.length) {
+    spans.add(TextSpan(text: text.substring(start)));
+  }
+  return spans;
+}
+
+
 C:\Programmazione\selfpass\lib\models\account.dart:
+import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+
 class Account {
+  final String id;
   final String accountName;
   final String username;
   final String password;
-  // Nuovo campo per indicare se l'account è tra i preferiti:
+  final String website;
   bool isFavorite;
 
+  // Icon related fields
+  final String iconMode;
+  final IconData? symbolIcon;
+  final Color? colorIcon;
+  final String? customIconPath;
+
+  // Field configuration
+  final List<String> enabledFields;
+
   Account({
+    String? id,
     required this.accountName,
     required this.username,
     required this.password,
+    required this.website,
     this.isFavorite = false,
-  });
+    this.iconMode = 'Website Icon',
+    this.symbolIcon,
+    this.colorIcon,
+    this.customIconPath,
+    List<String>? enabledFields,
+  }) : id = id ?? const Uuid().v4(),
+       enabledFields =
+           enabledFields ??
+           [
+             'Title',
+             'Login',
+             'Password',
+             'Website',
+             'One-time password (2FA)',
+             'Notes',
+           ];
+
+  Account copyWith({
+    String? id,
+    String? accountName,
+    String? username,
+    String? password,
+    String? website,
+    bool? isFavorite,
+    String? iconMode,
+    IconData? symbolIcon,
+    Color? colorIcon,
+    String? customIconPath,
+    List<String>? enabledFields,
+  }) {
+    return Account(
+      id: id ?? this.id,
+      accountName: accountName ?? this.accountName,
+      username: username ?? this.username,
+      password: password ?? this.password,
+      website: website ?? this.website,
+      isFavorite: isFavorite ?? this.isFavorite,
+      iconMode: iconMode ?? this.iconMode,
+      symbolIcon: symbolIcon ?? this.symbolIcon,
+      colorIcon: colorIcon ?? this.colorIcon,
+      customIconPath: customIconPath ?? this.customIconPath,
+      enabledFields: enabledFields ?? this.enabledFields,
+    );
+  }
 }
 
 
@@ -100,19 +491,17 @@ class CreditCardPage extends StatelessWidget {
 
 C:\Programmazione\selfpass\lib\pages\homepage.dart:
 import 'package:flutter/material.dart';
-import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:logger/logger.dart';
 import '../models/account.dart';
-import '../widgets/account_list.dart';
-import '../widgets/search_field.dart';
+import '../controllers/account_controller.dart';
 import '../widgets/custom_app_bar.dart';
-import '../widgets/custom_drawer.dart';
 import '../widgets/custom_bottom_navigation_bar.dart';
-import 'web_account_page.dart';
-import 'credit_card_page.dart';
-import 'id_passport_page.dart';
-import 'note_page.dart';
-import 'another_page.dart';
+import '../widgets/custom_drawer.dart';
+import '../widgets/floating_action_menu.dart';
+import 'tabs/all_accounts_tab.dart';
+import 'tabs/favorites_tab.dart';
+import 'tabs/settings_tab.dart';
+import 'tabs/tickets_tab.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -121,139 +510,43 @@ class Homepage extends StatefulWidget {
   State<Homepage> createState() => _HomepageState();
 }
 
-class _HomepageState extends State<Homepage> {
+class _HomepageState extends State<Homepage>
+    with SingleTickerProviderStateMixin {
   final Logger logger = Logger();
 
-  // Lista di account d'esempio (isFavorite inizialmente false)
-  final List<Account> accounts = [
-    Account(
-      accountName: 'Google',
-      username: 'user@gmail.com',
-      password: '••••••',
-    ),
-    Account(
-      accountName: 'Facebook',
-      username: 'user@facebook.com',
-      password: '••••••',
-    ),
-    Account(
-      accountName: 'Twitter',
-      username: 'user@twitter.com',
-      password: '••••••',
-    ),
-    Account(
-      accountName: 'Instagram',
-      username: 'user@instagram.com',
-      password: '••••••',
-    ),
-  ];
-
-  // Calcola la lista dei preferiti basandosi sul flag isFavorite dell'account
-  List<Account> get favoriteAccounts =>
-      accounts.where((account) => account.isFavorite).toList();
+  final AccountController _accountController = AccountController();
+  final TextEditingController _searchController = TextEditingController();
 
   // Stato della query di ricerca
   String _searchQuery = '';
 
-  // Getter per filtrare gli account in base alla query (case-insensitive)
-  List<Account> get filteredAccounts =>
-      _searchQuery.isEmpty
-          ? accounts
-          : accounts.where((account) {
-            return account.accountName.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ) ||
-                account.username.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                );
-          }).toList();
+  @override
+  void initState() {
+    super.initState();
+    _accountController.addListener(_onAccountsChanged);
+  }
 
-  List<Account> get filteredFavoriteAccounts =>
-      _searchQuery.isEmpty
-          ? favoriteAccounts
-          : favoriteAccounts.where((account) {
-            return account.accountName.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ) ||
-                account.username.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                );
-          }).toList();
+  @override
+  void dispose() {
+    _accountController.removeListener(_onAccountsChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onAccountsChanged() {
+    setState(() {});
+  }
 
   // Funzione per alternare il flag isFavorite
   void toggleFavorite(Account account) {
     setState(() {
-      account.isFavorite = !account.isFavorite;
+      _accountController.toggleFavorite(account);
     });
   }
 
-  // Costruisce il contenuto in base all'indice selezionato
-  Widget _buildContent() {
-    return IndexedStack(
-      index: _selectedIndex,
-      children: [
-        Column(
-          children: [
-            SearchField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-            Expanded(
-              child: AccountList(
-                accounts: filteredAccounts,
-                searchQuery: _searchQuery,
-                onFavoriteToggle: toggleFavorite,
-              ),
-            ),
-          ],
-        ),
-        Column(
-          children: [
-            SearchField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-            Expanded(
-              child: AccountList(
-                accounts: filteredFavoriteAccounts,
-                searchQuery: _searchQuery,
-                onFavoriteToggle: toggleFavorite,
-              ),
-            ),
-          ],
-        ),
-        Column(
-          children: const [
-            SearchField(),
-            Expanded(child: Center(child: Text('Pagina delle impostazioni'))),
-          ],
-        ),
-        Column(
-          children: const [
-            SearchField(),
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Pagina Biglietti',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // Indice della pagina attualmente visualizzata:
-  // 0 -> Tutti gli account; 1 -> Preferiti; 2 -> Impostazioni
   int _selectedIndex = 0;
+
+  // Removed unused AnimationController and _toggleMenu method as FloatingActionMenu handles menu state
 
   @override
   Widget build(BuildContext context) {
@@ -261,126 +554,62 @@ class _HomepageState extends State<Homepage> {
       drawer: const CustomDrawer(),
       appBar: const CustomAppBar(),
       backgroundColor: Colors.white,
-      body: _buildContent(),
-      floatingActionButton: SpeedDial(
-        icon: Icons.add,
-        activeIcon: Icons.close,
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        activeBackgroundColor: Colors.blue,
-        activeForegroundColor: Colors.white,
-        buttonSize: const Size(56, 56),
-        visible: true,
-        closeManually: false,
-        curve: Curves.easeInOut,
-        overlayColor: Colors.black,
-        overlayOpacity: 0.5,
-        elevation: 4,
-        shape: const CircleBorder(),
+      body: IndexedStack(
+        index: _selectedIndex,
         children: [
-          SpeedDialChild(
-            child: const Icon(Icons.language),
-            backgroundColor: Colors.orange,
-            label: 'Web Account',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () async {
-              logger.i('Navigating to Web Account Page');
-              try {
-                await Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (BuildContext context) => const WebAccountPage(),
-                  ),
-                );
-                logger.i('Returned from Web Account Page');
-              } catch (e) {
-                logger.e('Navigation error: $e');
-              }
+          AllAccountsTab(
+            key: ValueKey(_accountController.accounts.length),
+            accounts: _accountController.filterAccounts(_searchQuery),
+            searchQuery: _searchQuery,
+            onFavoriteToggle: toggleFavorite,
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
             },
+            controller: _searchController,
+            initialValue: _searchQuery,
           ),
-          SpeedDialChild(
-            child: const Icon(Icons.credit_card),
-            backgroundColor: Colors.orange,
-            label: 'Credit Card',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () async {
-              logger.i('Navigating to Credit Card Page');
-              try {
-                await Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (BuildContext context) => const CreditCardPage(),
-                  ),
-                );
-                logger.i('Returned from Credit Card Page');
-              } catch (e) {
-                logger.e('Navigation error: $e');
-              }
+          FavoritesTab(
+            favoriteAccounts: _accountController.filterFavoriteAccounts(
+              _searchQuery,
+            ),
+            searchQuery: _searchQuery,
+            onFavoriteToggle: toggleFavorite,
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
             },
+            controller: _searchController,
+            initialValue: _searchQuery,
           ),
-          SpeedDialChild(
-            child: const Icon(Icons.badge),
-            backgroundColor: Colors.orange,
-            label: 'ID/Passport',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () async {
-              logger.i('Navigating to ID/Passport Page');
-              try {
-                await Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (BuildContext context) => const IDPassportPage(),
-                  ),
-                );
-                logger.i('Returned from ID/Passport Page');
-              } catch (e) {
-                logger.e('Navigation error: $e');
-              }
+          SettingsTab(
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
             },
+            controller: _searchController,
+            initialValue: _searchQuery,
           ),
-          SpeedDialChild(
-            child: const Icon(Icons.note),
-            backgroundColor: Colors.orange,
-            label: 'Note',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () async {
-              logger.i('Navigating to Note Page');
-              try {
-                await Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (context) => const NotePage(),
-                  ),
-                );
-                logger.i('Returned from Note Page');
-              } catch (e) {
-                logger.e('Navigation error: $e');
-              }
+          TicketsTab(
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
             },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.more_horiz),
-            backgroundColor: Colors.orange,
-            label: 'Another',
-            labelStyle: const TextStyle(fontSize: 16),
-            onTap: () async {
-              logger.i('Navigating to Another Page');
-              try {
-                await Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (context) => const AnotherPage(),
-                  ),
-                );
-                logger.i('Returned from Another Page');
-              } catch (e) {
-                logger.e('Navigation error: $e');
-              }
-            },
+            controller: _searchController,
+            initialValue: _searchQuery,
           ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: FloatingActionMenu(
+        onMenuClosed: () {
+          setState(() {});
+        },
+      ),
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onItemSelected: (index) {
@@ -426,119 +655,92 @@ class NotePage extends StatelessWidget {
 }
 
 
-C:\Programmazione\selfpass\lib\pages\web_account_page.dart:
+C:\Programmazione\selfpass\lib\pages\organize_fields_page.dart:
 import 'package:flutter/material.dart';
 
-class WebAccountPage extends StatelessWidget {
-  const WebAccountPage({super.key});
+class OrganizeFieldsPage extends StatefulWidget {
+  final List<String> fields;
+  const OrganizeFieldsPage({super.key, required this.fields});
+
+  @override
+  OrganizeFieldsPageState createState() => OrganizeFieldsPageState();
+}
+
+class OrganizeFieldsPageState extends State<OrganizeFieldsPage> {
+  late List<String> _fields;
+
+  @override
+  void initState() {
+    super.initState();
+    _fields = List<String>.from(widget.fields);
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final String item = _fields.removeAt(oldIndex);
+      _fields.insert(newIndex, item);
+    });
+  }
+
+  void _onDelete(int index) {
+    setState(() {
+      _fields.removeAt(index);
+    });
+  }
+
+  void _onSave() {
+    Navigator.of(context).pop(_fields);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Web Account')),
-      body: const Center(child: Text('Web Account Page')),
-    );
-  }
-}
-
-
-C:\Programmazione\selfpass\lib\widgets\account_card.dart:
-import 'package:flutter/material.dart';
-import '../models/account.dart';
-
-class AccountCard extends StatelessWidget {
-  final Account account;
-  final String searchQuery;
-  // Callback per la gestione della pressione della stella:
-  final VoidCallback onFavoriteToggle;
-
-  const AccountCard({
-    super.key,
-    required this.account,
-    required this.searchQuery,
-    required this.onFavoriteToggle,
-  });
-
-  // Metodo che evidenzia le occorrenze della query nel testo
-  List<TextSpan> _highlightOccurrences(String text, String query) {
-    if (query.isEmpty) {
-      return [TextSpan(text: text)];
-    }
-
-    final List<TextSpan> spans = [];
-    final lowerText = text.toLowerCase();
-    final lowerQuery = query.toLowerCase();
-    int start = 0;
-    int index = lowerText.indexOf(lowerQuery);
-
-    while (index != -1) {
-      if (index > start) {
-        spans.add(TextSpan(text: text.substring(start, index)));
-      }
-      // Occorrenza trovata evidenziata
-      spans.add(
-        TextSpan(
-          text: text.substring(index, index + query.length),
-          style: const TextStyle(backgroundColor: Colors.yellow),
-        ),
-      );
-      start = index + query.length;
-      index = lowerText.indexOf(lowerQuery, start);
-    }
-    if (start < text.length) {
-      spans.add(TextSpan(text: text.substring(start)));
-    }
-    return spans;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        title: RichText(
-          text: TextSpan(
-            style: DefaultTextStyle.of(
-              context,
-            ).style.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
-            children: _highlightOccurrences(account.accountName, searchQuery),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('Organizza Campi'),
+        actions: [
+          IconButton(
+            onPressed: _onSave,
+            icon: const Icon(Icons.check, color: Colors.black),
           ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RichText(
-              text: TextSpan(
-                style: DefaultTextStyle.of(
-                  context,
-                ).style.copyWith(fontSize: 14),
-                children: _highlightOccurrences(
-                  'Username: ${account.username}',
-                  searchQuery,
-                ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.only(left: 0, right: 0),
+        child: ReorderableListView.builder(
+          itemCount: _fields.length,
+          onReorder: _onReorder,
+          buildDefaultDragHandles: false,
+          itemBuilder: (context, index) {
+            return ListTile(
+              key: ValueKey(_fields[index]),
+              title: Row(
+                children: [
+                  // Icona di trascinamento a sinistra
+                  ReorderableDragStartListener(
+                    index: index,
+                    child: const Icon(Icons.drag_handle),
+                  ),
+                  const SizedBox(width: 12),
+                  // Testo che occupa tutto lo spazio centrale
+                  Expanded(
+                    child: Text(
+                      _fields[index],
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  // Icona di chiusura tutta a destra
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red),
+                    onPressed: () => _onDelete(index),
+                  ),
+                ],
               ),
-            ),
-            RichText(
-              text: TextSpan(
-                style: DefaultTextStyle.of(
-                  context,
-                ).style.copyWith(fontSize: 14),
-                children: _highlightOccurrences(
-                  'Password: ${account.password}',
-                  searchQuery,
-                ),
-              ),
-            ),
-          ],
-        ),
-        trailing: IconButton(
-          icon: Icon(
-            // Icona piena se l'account è tra i preferiti, altrimenti solo il bordo
-            account.isFavorite ? Icons.star : Icons.star_border,
-            color: account.isFavorite ? Colors.amber : Colors.grey,
-          ),
-          onPressed: onFavoriteToggle,
+            );
+          },
         ),
       ),
     );
@@ -546,39 +748,1355 @@ class AccountCard extends StatelessWidget {
 }
 
 
-C:\Programmazione\selfpass\lib\widgets\account_list.dart:
+C:\Programmazione\selfpass\lib\pages\tabs\all_accounts_tab.dart:
 import 'package:flutter/material.dart';
-import '../models/account.dart';
-import 'account_card.dart';
+import '../../models/account.dart';
+import '../../widgets/account/account_list.dart';
+import '../../widgets/search_field.dart';
 
-class AccountList extends StatelessWidget {
+class AllAccountsTab extends StatelessWidget {
   final List<Account> accounts;
   final String searchQuery;
   final ValueChanged<Account> onFavoriteToggle;
+  final ValueChanged<String> onSearchChanged;
+  final TextEditingController? controller;
+  final String? initialValue;
 
-  const AccountList({
+  const AllAccountsTab({
     super.key,
     required this.accounts,
     required this.searchQuery,
     required this.onFavoriteToggle,
+    required this.onSearchChanged,
+    this.controller,
+    this.initialValue,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
-      itemCount: accounts.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 10),
-      itemBuilder: (context, index) {
-        final account = accounts[index];
-        return AccountCard(
-          account: account,
-          searchQuery: searchQuery,
-          onFavoriteToggle: () => onFavoriteToggle(account),
+    return Column(
+      children: [
+        SearchField(
+          onChanged: onSearchChanged,
+          controller: controller,
+          initialValue: initialValue,
+        ),
+        Expanded(
+          child: AccountList(
+            accounts: accounts,
+            searchQuery: searchQuery,
+            onFavoriteToggle: onFavoriteToggle,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\tabs\favorites_tab.dart:
+import 'package:flutter/material.dart';
+import '../../models/account.dart';
+import '../../widgets/account/account_list.dart';
+import '../../widgets/search_field.dart';
+
+class FavoritesTab extends StatelessWidget {
+  final List<Account> favoriteAccounts;
+  final String searchQuery;
+  final ValueChanged<Account> onFavoriteToggle;
+  final ValueChanged<String> onSearchChanged;
+  final TextEditingController? controller;
+  final String? initialValue;
+
+  const FavoritesTab({
+    super.key,
+    required this.favoriteAccounts,
+    required this.searchQuery,
+    required this.onFavoriteToggle,
+    required this.onSearchChanged,
+    this.controller,
+    this.initialValue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SearchField(
+          onChanged: onSearchChanged,
+          controller: controller,
+          initialValue: initialValue,
+        ),
+        Expanded(
+          child: AccountList(
+            accounts: favoriteAccounts,
+            searchQuery: searchQuery,
+            onFavoriteToggle: onFavoriteToggle,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\tabs\settings_tab.dart:
+import 'package:flutter/material.dart';
+import '../../widgets/search_field.dart';
+
+class SettingsTab extends StatelessWidget {
+  final ValueChanged<String>? onSearchChanged;
+  final TextEditingController? controller;
+  final String? initialValue;
+
+  const SettingsTab({
+    super.key,
+    this.onSearchChanged,
+    this.controller,
+    this.initialValue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SearchField(
+          onChanged: onSearchChanged,
+          controller: controller,
+          initialValue: initialValue,
+        ),
+        const Expanded(child: Center(child: Text('Pagina delle impostazioni'))),
+      ],
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\tabs\tickets_tab.dart:
+import 'package:flutter/material.dart';
+import '../../widgets/search_field.dart';
+
+class TicketsTab extends StatelessWidget {
+  final ValueChanged<String>? onSearchChanged;
+  final TextEditingController? controller;
+  final String? initialValue;
+
+  const TicketsTab({
+    super.key,
+    this.onSearchChanged,
+    this.controller,
+    this.initialValue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SearchField(
+          onChanged: onSearchChanged,
+          controller: controller,
+          initialValue: initialValue,
+        ),
+        const Expanded(
+          child: Center(
+            child: Text(
+              'Pagina Biglietti',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\web_account\web_account_page.dart:
+import 'package:flutter/material.dart';
+import '../../models/account.dart';
+import 'widgets/account_form.dart';
+import '../organize_fields_page.dart';
+
+class WebAccountPage extends StatefulWidget {
+  const WebAccountPage({super.key});
+
+  @override
+  WebAccountPageState createState() => WebAccountPageState();
+}
+
+class WebAccountPageState extends State<WebAccountPage> {
+  Account? _editingAccount;
+  final _formKey = GlobalKey<AccountFormState>();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args != null && args is Account) {
+      _editingAccount = args;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.check, color: Colors.black),
+          onPressed: () {
+            if (_formKey.currentState != null) {
+              _formKey.currentState!.saveAccount();
+            }
+          },
+        ),
+        title: const Text('Web Account'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              switch (value) {
+                case 'organize_fields':
+                  if (_formKey.currentState != null) {
+                    List<String> fieldsToOrganize = List.from(
+                      _formKey.currentState!.enabledFields,
+                    );
+                    // Add additional fields if any
+                    for (var entry in _formKey.currentState!.additionalFields) {
+                      final labelWidget = entry['label'];
+                      if (labelWidget is Text) {
+                        final label = labelWidget.data;
+                        if (label != null && label.isNotEmpty) {
+                          fieldsToOrganize.add(label);
+                        }
+                      }
+                    }
+                    // Navigate to OrganizeFieldsPage
+                    final reorderedFields = await Navigator.push<List<String>>(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) =>
+                                OrganizeFieldsPage(fields: fieldsToOrganize),
+                      ),
+                    );
+                    if (reorderedFields != null &&
+                        _formKey.currentState != null) {
+                      _formKey.currentState!.setState(() {
+                        _formKey.currentState!.enabledFields = reorderedFields;
+                      });
+                    }
+                  }
+                  break;
+                case 'cancel_changes':
+                  Navigator.pop(context);
+                  break;
+                case 'save_template':
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Save as template not implemented yet'),
+                    ),
+                  );
+                  break;
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'organize_fields',
+                    child: Text('Organizza Campi'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'cancel_changes',
+                    child: Text('Annulla Modifiche'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'save_template',
+                    child: Text('Salva come modello'),
+                  ),
+                ],
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
+      ),
+      body: AccountForm(key: _formKey, editingAccount: _editingAccount),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\web_account\widgets\account_form.dart:
+import 'package:flutter/material.dart';
+import '../../../controllers/account_controller.dart';
+import '../../../models/account.dart';
+import '../../../helpers/password_strength_helper.dart';
+import '../../../widgets/password_generator_dialog.dart';
+import 'password_field.dart';
+import 'icon_selector.dart';
+
+class AccountForm extends StatefulWidget {
+  final Account? editingAccount;
+
+  const AccountForm({super.key, this.editingAccount});
+
+  @override
+  AccountFormState createState() => AccountFormState();
+}
+
+class AccountFormState extends State<AccountForm> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _loginController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _websiteController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+
+  // New controllers for Scadenza and Data fields
+  final TextEditingController _scadenzaController = TextEditingController();
+  final TextEditingController _dataController = TextEditingController();
+
+  final AccountController _accountController = AccountController();
+
+  bool _passwordVisible = false;
+  double _passwordStrength = 0;
+  String _passwordStrengthLabel = '';
+  String _passwordCrackTime = '';
+  String _iconSelectionMode = 'Website Icon';
+  IconData? _selectedSymbolIcon;
+  Color? _selectedSymbolColor;
+  Color? _selectedColorIcon;
+
+  // Change additionalFields to store label, widget, and controller
+  List<Map<String, dynamic>> additionalFields = [];
+  // Make enabledFields public so it can be accessed from WebAccountPage
+  List<String> enabledFields = [
+    'Title',
+    'Login',
+    'Password',
+    'Website',
+    'One-time password (2FA)',
+    'Notes',
+  ];
+
+  // Helper method to convert dd/MM/yyyy string to yyyy-MM-dd for DateTime.parse
+  String _formatDateForParse(String dateStr) {
+    final parts = dateStr.split('/');
+    if (parts.length == 3) {
+      return '${parts[2]}-${parts[1]}-${parts[0]}';
+    }
+    return dateStr;
+  }
+
+  static const List<String> fieldOptions = [
+    'Testo',
+    'Numero',
+    'Login',
+    'Password',
+    'Password monouso (2FA)',
+    'Scadenza',
+    'Sito web',
+    'Email',
+    'Telefono',
+    'Data',
+    'Pin',
+    'Privato',
+    'Applicazione',
+  ];
+
+  void _onPasswordChanged() {
+    final password = _passwordController.text;
+    setState(() {
+      _passwordStrength = PasswordStrengthHelper.calculatePasswordStrength(
+        password,
+      );
+      _passwordStrengthLabel = PasswordStrengthHelper.getStrengthLabel(
+        _passwordStrength,
+      );
+      _passwordCrackTime = PasswordStrengthHelper.estimateCrackTime(password);
+    });
+  }
+
+  void _onWebsiteChanged() {
+    if (_iconSelectionMode == 'Website Icon') {
+      setState(() {
+        // Trigger rebuild when website URL changes
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.editingAccount != null) {
+      _initializeWithAccount(widget.editingAccount!);
+    }
+    _websiteController.addListener(_onWebsiteChanged);
+    _passwordController.addListener(_onPasswordChanged);
+  }
+
+  void _initializeWithAccount(Account account) {
+    _titleController.text = account.accountName;
+    _loginController.text = account.username;
+    _passwordController.text = account.password;
+    _websiteController.text = account.website;
+    _iconSelectionMode = account.iconMode;
+    _selectedSymbolIcon = account.symbolIcon;
+    _selectedSymbolColor = account.colorIcon;
+    _selectedColorIcon = account.colorIcon;
+    enabledFields = List.from(account.enabledFields);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _loginController.dispose();
+    _passwordController.dispose();
+    _websiteController.removeListener(_onWebsiteChanged);
+    _passwordController.removeListener(_onPasswordChanged);
+    _websiteController.dispose();
+    _otpController.dispose();
+    _notesController.dispose();
+
+    // Dispose new controllers
+    _scadenzaController.dispose();
+    _dataController.dispose();
+
+    for (var entry in additionalFields) {
+      final controller = entry['controller'];
+      if (controller is TextEditingController) {
+        controller.dispose();
+      }
+    }
+    super.dispose();
+  }
+
+  void saveAccount() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
+      return;
+    }
+
+    final accountToSave = Account(
+      accountName: _titleController.text.trim(),
+      username: _loginController.text.trim(),
+      password: _passwordController.text,
+      website: _websiteController.text.trim(),
+      iconMode: _iconSelectionMode,
+      symbolIcon: _selectedSymbolIcon,
+      colorIcon: _selectedColorIcon ?? _selectedSymbolColor,
+      customIconPath: null,
+      isFavorite: widget.editingAccount?.isFavorite ?? false,
+      enabledFields: enabledFields,
+    );
+
+    try {
+      if (widget.editingAccount != null) {
+        // Pass the existing account's id when updating
+        final updatedAccount = accountToSave.copyWith(
+          id: widget.editingAccount!.id,
+        );
+        _accountController.updateAccount(updatedAccount);
+      } else {
+        _accountController.addAccount(accountToSave);
+      }
+      Navigator.of(context).pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving account: ${e.toString()}')),
+      );
+    }
+  }
+
+  void _openPasswordGenerator() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return PasswordGeneratorDialog(
+          initialLength: 12,
+          initialType: 'Random',
+          initialPassword: '',
+          onPasswordGenerated: (password, length, type) {
+            setState(() {
+              _passwordController.text = password;
+            });
+          },
         );
       },
     );
   }
+
+  void _deleteField(String fieldName) {
+    setState(() {
+      enabledFields.remove(fieldName);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (String field in enabledFields) ...[
+            if (field == 'Title') ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Title',
+                        border: const UnderlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => _deleteField('Title'),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconSelector(
+                    iconSelectionMode: _iconSelectionMode,
+                    websiteUrl: _websiteController.text,
+                    selectedSymbolIcon: _selectedSymbolIcon,
+                    selectedSymbolColor: _selectedSymbolColor,
+                    selectedColorIcon: _selectedColorIcon,
+                    onModeSelected: (mode) {
+                      setState(() {
+                        _iconSelectionMode = mode;
+                      });
+                    },
+                    onSymbolSelected: (icon, color) {
+                      setState(() {
+                        _selectedSymbolIcon = icon;
+                        _selectedSymbolColor = color;
+                        _selectedColorIcon = null;
+                      });
+                    },
+                    onColorSelected: (color) {
+                      setState(() {
+                        _selectedColorIcon = color;
+                        _selectedSymbolIcon = null;
+                        _selectedSymbolColor = null;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (field == 'Login') ...[
+              TextFormField(
+                controller: _loginController,
+                decoration: InputDecoration(
+                  labelText: 'Login',
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Account icon button that shows registered accounts
+                      IconButton(
+                        icon: const Icon(Icons.person_outline),
+                        onPressed: () {
+                          final accounts = _accountController.accounts;
+                          if (accounts.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('No accounts registered'),
+                              ),
+                            );
+                            return;
+                          }
+                          final RenderBox button =
+                              context.findRenderObject() as RenderBox;
+                          final RenderBox overlay =
+                              Overlay.of(context).context.findRenderObject()
+                                  as RenderBox;
+                          final RelativeRect position = RelativeRect.fromRect(
+                            Rect.fromPoints(
+                              button.localToGlobal(
+                                Offset.zero,
+                                ancestor: overlay,
+                              ),
+                              button.localToGlobal(
+                                button.size.bottomRight(Offset.zero),
+                                ancestor: overlay,
+                              ),
+                            ),
+                            Offset.zero & overlay.size,
+                          );
+
+                          showMenu<Account>(
+                            context: context,
+                            position: position,
+                            items:
+                                accounts.map((account) {
+                                  return PopupMenuItem<Account>(
+                                    value: account,
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.account_circle,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            account.username,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                          ).then((selectedAccount) {
+                            if (selectedAccount != null) {
+                              setState(() {
+                                _loginController.text =
+                                    selectedAccount.username;
+                              });
+                            }
+                          });
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => _deleteField('Login'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (field == 'Password') ...[
+              PasswordField(
+                controller: _passwordController,
+                passwordVisible: _passwordVisible,
+                passwordStrength: _passwordStrength,
+                passwordStrengthLabel: _passwordStrengthLabel,
+                passwordCrackTime: _passwordCrackTime,
+                onToggleVisibility: () {
+                  setState(() {
+                    _passwordVisible = !_passwordVisible;
+                  });
+                },
+                onGeneratePassword: _openPasswordGenerator,
+                onDelete: () => _deleteField('Password'),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (field == 'Website') ...[
+              TextFormField(
+                controller: _websiteController,
+                decoration: InputDecoration(
+                  labelText: 'Website',
+                  border: const UnderlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => _deleteField('Website'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (field == 'Scadenza') ...[
+              TextFormField(
+                controller: _scadenzaController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Scadenza',
+                  border: const UnderlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () async {
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate:
+                            _scadenzaController.text.isNotEmpty
+                                ? DateTime.tryParse(
+                                      _formatDateForParse(
+                                        _scadenzaController.text,
+                                      ),
+                                    ) ??
+                                    DateTime.now()
+                                : DateTime.now(),
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime(2100),
+                      );
+                      if (pickedDate != null) {
+                        setState(() {
+                          _scadenzaController.text =
+                              "${pickedDate.day.toString().padLeft(2, '0')}/"
+                              "${pickedDate.month.toString().padLeft(2, '0')}/"
+                              "${pickedDate.year}";
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (field == 'Data') ...[
+              TextFormField(
+                controller: _dataController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Data',
+                  border: const UnderlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () async {
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate:
+                            _dataController.text.isNotEmpty
+                                ? DateTime.tryParse(
+                                      _formatDateForParse(_dataController.text),
+                                    ) ??
+                                    DateTime.now()
+                                : DateTime.now(),
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime(2100),
+                      );
+                      if (pickedDate != null) {
+                        setState(() {
+                          _dataController.text =
+                              "${pickedDate.day.toString().padLeft(2, '0')}/"
+                              "${pickedDate.month.toString().padLeft(2, '0')}/"
+                              "${pickedDate.year}";
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (field == 'One-time password (2FA)') ...[
+              TextFormField(
+                controller: _otpController,
+                decoration: InputDecoration(
+                  labelText: 'One-time password (2FA)',
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.qr_code),
+                        onPressed: () {
+                          // QR code scanning functionality
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed:
+                            () => _deleteField('One-time password (2FA)'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (field == 'Notes') ...[
+              TextFormField(
+                controller: _notesController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  labelText: 'Notes',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => _deleteField('Notes'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ],
+
+          // Add another field button
+          PopupMenuButton<String>(
+            onSelected: (String selectedOption) {
+              setState(() {
+                TextEditingController? controller;
+                if (selectedOption == 'Login' ||
+                    selectedOption == 'Email' ||
+                    selectedOption == 'Scadenza' ||
+                    selectedOption == 'Data') {
+                  controller = TextEditingController();
+                }
+                additionalFields.add({
+                  'label': Text(selectedOption),
+                  'widget': Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: TextFormField(
+                      controller: controller,
+                      decoration: InputDecoration(
+                        labelText: selectedOption,
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  'controller': controller,
+                });
+              });
+            },
+            itemBuilder: (BuildContext context) {
+              return fieldOptions.map<PopupMenuItem<String>>((String option) {
+                return PopupMenuItem<String>(
+                  value: option,
+                  child: Text(option),
+                );
+              }).toList();
+            },
+            child: Container(
+              height: 36,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              child: const Text(
+                'ADD ANOTHER FIELD',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+
+          // Additional fields
+          ...additionalFields.map((entry) {
+            final labelWidget = entry['label'];
+            final fieldWidget = entry['widget'];
+            Widget fieldWithIcon = fieldWidget!;
+            if (labelWidget is Text &&
+                (labelWidget.data == 'Email' || labelWidget.data == 'Login')) {
+              // Wrap the TextFormField with suffixIcon containing the "omino" icon button
+              final TextEditingController? controller = entry['controller'];
+              fieldWithIcon = Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    labelText: labelWidget.data,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.person_outline),
+                          onPressed: () {
+                            final accounts = _accountController.accounts;
+                            if (accounts.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('No accounts registered'),
+                                ),
+                              );
+                              return;
+                            }
+                            final RenderBox button =
+                                context.findRenderObject() as RenderBox;
+                            final RenderBox overlay =
+                                Overlay.of(context).context.findRenderObject()
+                                    as RenderBox;
+                            final RelativeRect position = RelativeRect.fromRect(
+                              Rect.fromPoints(
+                                button.localToGlobal(
+                                  Offset.zero,
+                                  ancestor: overlay,
+                                ),
+                                button.localToGlobal(
+                                  button.size.bottomRight(Offset.zero),
+                                  ancestor: overlay,
+                                ),
+                              ),
+                              Offset.zero & overlay.size,
+                            );
+
+                            showMenu<Account>(
+                              context: context,
+                              position: position,
+                              items:
+                                  accounts.map((account) {
+                                    return PopupMenuItem<Account>(
+                                      value: account,
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.account_circle,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              account.username,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                            ).then((selectedAccount) {
+                              if (selectedAccount != null) {
+                                setState(() {
+                                  if (controller != null) {
+                                    controller.text = selectedAccount.username;
+                                  }
+                                });
+                              }
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              additionalFields.remove(entry);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            } else if (labelWidget is Text &&
+                (labelWidget.data == 'Scadenza' ||
+                    labelWidget.data == 'Data')) {
+              final TextEditingController? controller = entry['controller'];
+              fieldWithIcon = Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  controller: controller,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: labelWidget.data,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: () async {
+                        final DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate:
+                              controller != null && controller.text.isNotEmpty
+                                  ? DateTime.tryParse(
+                                        _formatDateForParse(controller.text),
+                                      ) ??
+                                      DateTime.now()
+                                  : DateTime.now(),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime(2100),
+                        );
+                        if (pickedDate != null) {
+                          setState(() {
+                            if (controller != null) {
+                              controller.text =
+                                  "${pickedDate.day.toString().padLeft(2, '0')}/"
+                                  "${pickedDate.month.toString().padLeft(2, '0')}/"
+                                  "${pickedDate.year}";
+                            }
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              );
+            }
+            return Row(
+              key: ValueKey(labelWidget),
+              children: [
+                Expanded(child: fieldWithIcon),
+                if (!(labelWidget is Text &&
+                    (labelWidget.data == 'Email' ||
+                        labelWidget.data == 'Login')))
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      setState(() {
+                        additionalFields.remove(entry);
+                      });
+                    },
+                  ),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\web_account\widgets\icon_selector.dart:
+import 'package:flutter/material.dart';
+import '../../../services/icon_service.dart';
+import '../../../widgets/symbol_families_selector.dart';
+
+class IconSelector extends StatelessWidget {
+  final String iconSelectionMode;
+  final String websiteUrl;
+  final IconData? selectedSymbolIcon;
+  final Color? selectedSymbolColor;
+  final Color? selectedColorIcon;
+  final Function(String) onModeSelected;
+  final Function(IconData, Color?) onSymbolSelected;
+  final Function(Color) onColorSelected;
+
+  const IconSelector({
+    super.key,
+    required this.iconSelectionMode,
+    required this.websiteUrl,
+    this.selectedSymbolIcon,
+    this.selectedSymbolColor,
+    this.selectedColorIcon,
+    required this.onModeSelected,
+    required this.onSymbolSelected,
+    required this.onColorSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (mode) {
+        onModeSelected(mode);
+        if (mode == 'Symbol') {
+          _showSymbolSelectionDialog(context);
+        } else if (mode == 'Color') {
+          _showColorSelectionDialog(context);
+        }
+      },
+      itemBuilder:
+          (context) => [
+            const PopupMenuItem(
+              value: 'Website Icon',
+              child: Text('Website Icon'),
+            ),
+            const PopupMenuItem(value: 'Symbol', child: Text('Symbol')),
+            const PopupMenuItem(value: 'Color', child: Text('Color')),
+            const PopupMenuItem(
+              value: 'Custom Icon',
+              child: Text('Custom Icon'),
+            ),
+          ],
+      child: CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.transparent,
+        child: _buildIcon(),
+      ),
+    );
+  }
+
+  Widget _buildIcon() {
+    if (iconSelectionMode == 'Website Icon' && websiteUrl.isNotEmpty) {
+      return _buildWebsiteFavicon();
+    } else if (iconSelectionMode == 'Symbol' && selectedSymbolIcon != null) {
+      return Icon(
+        selectedSymbolIcon,
+        color: selectedSymbolColor ?? Colors.black,
+      );
+    } else if (iconSelectionMode == 'Color' && selectedColorIcon != null) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: selectedColorIcon,
+          shape: BoxShape.circle,
+        ),
+      );
+    }
+    return Icon(IconService.getIconForMode(iconSelectionMode));
+  }
+
+  Widget _buildWebsiteFavicon() {
+    final faviconUrl = IconService.getFaviconUrl(websiteUrl);
+    return ClipOval(
+      child: Image.network(
+        faviconUrl,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(IconService.getIconForMode('Website Icon'));
+        },
+      ),
+    );
+  }
+
+  void _showSymbolSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Symbol Icon'),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 350,
+            child: SymbolFamiliesSelector(
+              onSymbolSelected: (iconData, color) {
+                Navigator.of(context).pop();
+                _showSymbolColorSelectionDialog(context, iconData);
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSymbolColorSelectionDialog(
+    BuildContext context,
+    IconData iconData,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Symbol Color'),
+          content: _buildColorGrid(
+            onColorSelected: (color) {
+              onSymbolSelected(iconData, color);
+              Navigator.of(context).pop();
+            },
+            selectedColor: selectedSymbolColor,
+          ),
+        );
+      },
+    );
+  }
+
+  void _showColorSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Color'),
+          content: _buildColorGrid(
+            onColorSelected: (color) {
+              onColorSelected(color);
+              Navigator.of(context).pop();
+            },
+            selectedColor: selectedColorIcon,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildColorGrid({
+    required Function(Color) onColorSelected,
+    Color? selectedColor,
+  }) {
+    return SizedBox(
+      width: double.maxFinite,
+      child: GridView.count(
+        crossAxisCount: 5,
+        shrinkWrap: true,
+        children:
+            IconService.availableColors.map((color) {
+              return GestureDetector(
+                onTap: () => onColorSelected(color),
+                child: Container(
+                  margin: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color:
+                          selectedColor == color
+                              ? Colors.black
+                              : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  width: 36,
+                  height: 36,
+                ),
+              );
+            }).toList(),
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\pages\web_account\widgets\password_field.dart:
+import 'package:flutter/material.dart';
+
+class PasswordField extends StatelessWidget {
+  final TextEditingController controller;
+  final bool passwordVisible;
+  final double passwordStrength;
+  final String passwordStrengthLabel;
+  final String passwordCrackTime;
+  final VoidCallback onToggleVisibility;
+  final VoidCallback onGeneratePassword;
+  final VoidCallback onDelete;
+
+  const PasswordField({
+    super.key,
+    required this.controller,
+    required this.passwordVisible,
+    required this.passwordStrength,
+    required this.passwordStrengthLabel,
+    required this.passwordCrackTime,
+    required this.onToggleVisibility,
+    required this.onGeneratePassword,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          obscureText: !passwordVisible,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    passwordVisible ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: onToggleVisibility,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.vpn_key),
+                  onPressed: onGeneratePassword,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => _showDeleteDialog(context),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: passwordStrength,
+                backgroundColor: Colors.grey[300],
+                color: _getStrengthColor(passwordStrength),
+                minHeight: 4,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Crack time: $passwordCrackTime',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Color _getStrengthColor(double strength) {
+    if (strength < 0.5) return Colors.red;
+    if (strength < 0.75) return Colors.orange;
+    return Colors.green;
+  }
+
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Opzioni'),
+          content: const Text('Scegli un\'azione'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onDelete();
+              },
+              child: const Text('Elimina'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Annulla'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\services\icon_service.dart:
+import 'package:flutter/material.dart';
+
+class IconService {
+  static IconData getIconForMode(String mode) {
+    switch (mode) {
+      case 'Website Icon':
+        return Icons.language;
+      case 'Symbol':
+        return Icons.star;
+      case 'Color':
+        return Icons.color_lens;
+      case 'Custom Icon':
+        return Icons.image;
+      default:
+        return Icons.language;
+    }
+  }
+
+  static String getFaviconUrl(String websiteUrl) {
+    String domain = websiteUrl;
+    if (domain.startsWith('http://')) {
+      domain = domain.substring(7);
+    } else if (domain.startsWith('https://')) {
+      domain = domain.substring(8);
+    }
+    if (domain.contains('/')) {
+      domain = domain.split('/')[0];
+    }
+    return 'https://www.google.com/s2/favicons?domain=$domain&sz=64';
+  }
+
+  static final List<Color> availableColors = [
+    Colors.red,
+    Colors.pink,
+    Colors.purple,
+    Colors.deepPurple,
+    Colors.indigo,
+    Colors.blue,
+    Colors.lightBlue,
+    Colors.cyan,
+    Colors.teal,
+    Colors.green,
+    Colors.lightGreen,
+    Colors.lime,
+    Colors.yellow,
+    Colors.amber,
+    Colors.orange,
+    Colors.deepOrange,
+    Colors.brown,
+    Colors.grey,
+    Colors.blueGrey,
+  ];
 }
 
 
@@ -718,13 +2236,487 @@ class CustomDrawer extends StatelessWidget {
 }
 
 
+C:\Programmazione\selfpass\lib\widgets\floating_action_menu.dart:
+import 'package:flutter/material.dart';
+import 'floating_menu.dart';
+
+class FloatingActionMenu extends StatefulWidget {
+  final VoidCallback? onMenuClosed;
+
+  const FloatingActionMenu({super.key, this.onMenuClosed});
+
+  @override
+  FloatingActionMenuState createState() => FloatingActionMenuState();
+}
+
+class FloatingActionMenuState extends State<FloatingActionMenu>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  bool _isMenuOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleMenu() {
+    if (_isMenuOpen) {
+      _animationController.reverse();
+    } else {
+      _animationController.forward();
+    }
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+    });
+  }
+
+  Future<void> _handleMenuClosed() async {
+    if (widget.onMenuClosed != null) {
+      widget.onMenuClosed!();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        if (_isMenuOpen)
+          FloatingMenu(
+            animation: _animationController,
+            toggleMenu: () async {
+              _toggleMenu();
+              await _handleMenuClosed();
+            },
+          ),
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton(
+            onPressed: _toggleMenu,
+            backgroundColor: Colors.blue,
+            shape: const CircleBorder(),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return RotationTransition(
+                  turns:
+                      child.key == const ValueKey('icon1')
+                          ? Tween<double>(
+                            begin: 0.75,
+                            end: 1.0,
+                          ).animate(animation)
+                          : Tween<double>(
+                            begin: 1.0,
+                            end: 0.75,
+                          ).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              child:
+                  _isMenuOpen
+                      ? const Icon(
+                        Icons.close,
+                        key: ValueKey('icon2'),
+                        color: Colors.white,
+                        size: 28,
+                      )
+                      : const Icon(
+                        Icons.add,
+                        key: ValueKey('icon1'),
+                        color: Colors.white,
+                        size: 28,
+                      ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\floating_menu.dart:
+import 'package:flutter/material.dart';
+import '../pages/web_account/web_account_page.dart';
+import '../pages/credit_card_page.dart';
+import '../pages/id_passport_page.dart';
+import '../pages/note_page.dart';
+import '../pages/another_page.dart';
+
+class FloatingMenu extends StatelessWidget {
+  final Animation<double> animation;
+  final VoidCallback toggleMenu;
+
+  const FloatingMenu({
+    super.key,
+    required this.animation,
+    required this.toggleMenu,
+  });
+
+  Widget _buildMenuOption(
+    IconData icon,
+    String label,
+    Widget page,
+    BuildContext context,
+  ) {
+    return GestureDetector(
+      onTap: () async {
+        toggleMenu();
+        await Navigator.push<void>(
+          context,
+          MaterialPageRoute<void>(builder: (BuildContext context) => page),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.orange,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orange.withAlpha(150),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 80,
+      right: 16,
+      child: FadeTransition(
+        opacity: animation,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildMenuOption(
+              Icons.language,
+              'Web Account',
+              const WebAccountPage(),
+              context,
+            ),
+            _buildMenuOption(
+              Icons.credit_card,
+              'Credit Card',
+              const CreditCardPage(),
+              context,
+            ),
+            _buildMenuOption(
+              Icons.badge,
+              'ID/Passport',
+              const IDPassportPage(),
+              context,
+            ),
+            _buildMenuOption(Icons.note, 'Note', const NotePage(), context),
+            _buildMenuOption(
+              Icons.more_horiz,
+              'Another',
+              const AnotherPage(),
+              context,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\password_generator_dialog.dart:
+import 'package:flutter/material.dart';
+import '../helpers/password_strength_helper.dart';
+
+typedef PasswordGeneratedCallback =
+    void Function(String password, int length, String type);
+
+class PasswordGeneratorDialog extends StatefulWidget {
+  final int initialLength;
+  final String initialType;
+  final String initialPassword;
+  final PasswordGeneratedCallback onPasswordGenerated;
+
+  const PasswordGeneratorDialog({
+    super.key,
+    required this.initialLength,
+    required this.initialType,
+    required this.initialPassword,
+    required this.onPasswordGenerated,
+  });
+
+  @override
+  PasswordGeneratorDialogState createState() => PasswordGeneratorDialogState();
+}
+
+class PasswordGeneratorDialogState extends State<PasswordGeneratorDialog> {
+  late int _length;
+  late String _type;
+  late String _password;
+  late TextEditingController _passwordController;
+  double _passwordStrength = 0;
+  String _crackTime = '';
+
+  Color _getStrengthColor(double strength) {
+    if (strength < 0.5) return Colors.red;
+    if (strength < 0.75) return Colors.orange;
+    return Colors.green;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _length = widget.initialLength;
+    _type = widget.initialType;
+    _password = widget.initialPassword;
+    _passwordController = TextEditingController(text: _password);
+    _generatePassword();
+    _updatePasswordStrength();
+  }
+
+  void _generatePassword() {
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#\$%^&*()-_=+[]{}|;:,.<>?';
+
+    String chars = '';
+    switch (_type) {
+      case 'Memorizable':
+        chars = 'aeioulnrst';
+        break;
+      case 'Numbers':
+        chars = numbers;
+        break;
+      case 'Random':
+        chars = letters + letters.toUpperCase() + numbers + symbols;
+        break;
+      case 'Letters+Numbers':
+        chars = letters + letters.toUpperCase() + numbers;
+        break;
+      default:
+        chars = letters + letters.toUpperCase() + numbers + symbols;
+    }
+
+    final rand =
+        List.generate(_length, (index) {
+          final idx =
+              (DateTime.now().millisecondsSinceEpoch + index) % chars.length;
+          return chars[idx];
+        }).join();
+
+    setState(() {
+      _password = rand;
+      _passwordController.text = _password;
+      _updatePasswordStrength();
+    });
+  }
+
+  void _updatePasswordStrength() {
+    setState(() {
+      _passwordStrength = PasswordStrengthHelper.calculatePasswordStrength(
+        _password,
+      );
+      _crackTime = PasswordStrengthHelper.estimateCrackTime(_password);
+    });
+  }
+
+  void _onGeneratePressed() {
+    _generatePassword();
+  }
+
+  void _onOkPressed() {
+    widget.onPasswordGenerated(_password, _length, _type);
+    Navigator.of(context).pop();
+  }
+
+  void _onCancelPressed() {
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Password Generator',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+
+            // Password display with refresh icon
+            TextField(
+              controller: _passwordController,
+              readOnly: true,
+              decoration: InputDecoration(
+                border: const UnderlineInputBorder(),
+                hintText: 'Generated password will appear here',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _onGeneratePressed,
+                ),
+              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Password strength indicator
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: _passwordStrength,
+                    backgroundColor: Colors.grey[300],
+                    color: _getStrengthColor(_passwordStrength),
+                    minHeight: 4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Crack time: $_crackTime',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Length display and slider
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Length: $_length',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            Slider(
+              value: _length.toDouble(),
+              min: 8,
+              max: 64,
+              divisions: 56,
+              label: _length.toString(),
+              onChanged: (value) {
+                setState(() {
+                  _length = value.toInt();
+                  _generatePassword();
+                });
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Password type dropdown
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: DropdownButton<String>(
+                value: _type,
+                isExpanded: true,
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'Memorizable',
+                    child: Text('Memorizable'),
+                  ),
+                  DropdownMenuItem(value: 'Numbers', child: Text('Numbers')),
+                  DropdownMenuItem(value: 'Random', child: Text('Random')),
+                  DropdownMenuItem(
+                    value: 'Letters+Numbers',
+                    child: Text('Letters+Numbers'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _type = value;
+                      _generatePassword();
+                    });
+                  }
+                },
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Action buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: _onCancelPressed,
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _onOkPressed,
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 C:\Programmazione\selfpass\lib\widgets\search_field.dart:
 import 'package:flutter/material.dart';
 
 class SearchField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
+  final TextEditingController? controller;
+  final String? initialValue;
 
-  const SearchField({super.key, this.onChanged});
+  const SearchField({
+    super.key,
+    this.onChanged,
+    this.controller,
+    this.initialValue,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -740,7 +2732,10 @@ class SearchField extends StatelessWidget {
         ],
       ),
       child: TextField(
+        controller: controller,
         onChanged: onChanged,
+        // If no controller is provided, use initialValue
+        key: controller == null ? Key(initialValue ?? '') : null,
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white,
@@ -757,6 +2752,452 @@ class SearchField extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\symbol_data.dart:
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+final Map<String, List<IconData>> symbolFamilies = {
+  'Letters': [
+    Icons.filter_1,
+    Icons.filter_2,
+    Icons.filter_3,
+    Icons.filter_4,
+    Icons.filter_5,
+    Icons.filter_6,
+    Icons.filter_7,
+    Icons.filter_8,
+    Icons.filter_9,
+    Icons.filter_9_plus,
+    Icons.ac_unit,
+    Icons.access_alarm,
+    Icons.accessibility,
+    Icons.account_balance,
+    Icons.ad_units,
+    Icons.add_alert,
+    Icons.airplanemode_active,
+    Icons.album,
+    Icons.all_inbox,
+    Icons.anchor,
+  ],
+  'Numbers': [
+    Icons.looks_one,
+    Icons.looks_two,
+    Icons.looks_3,
+    Icons.looks_4,
+    Icons.looks_5,
+    Icons.looks_6,
+    Icons.exposure_plus_1,
+    Icons.exposure_plus_2,
+    Icons.exposure_neg_1,
+    Icons.exposure_neg_2,
+    Icons.exposure_minus_1,
+    Icons.exposure_minus_2,
+  ],
+  'Finance': [
+    Icons.attach_money,
+    Icons.money_off,
+    Icons.account_balance_wallet,
+    Icons.credit_card,
+    Icons.savings,
+    Icons.trending_up,
+    Icons.pie_chart,
+    Icons.bar_chart,
+    Icons.show_chart,
+  ],
+  'Internet': [
+    Icons.language,
+    Icons.wifi,
+    Icons.cloud,
+    Icons.cloud_queue,
+    Icons.cloud_off,
+    Icons.cloud_done,
+    Icons.http,
+    Icons.router,
+    Icons.phonelink,
+    Icons.phonelink_off,
+  ],
+  'Various': [
+    Icons.cake,
+    Icons.local_cafe,
+    Icons.local_dining,
+    Icons.local_bar,
+    Icons.local_florist,
+    Icons.local_gas_station,
+    Icons.local_hospital,
+    Icons.local_library,
+    Icons.local_mall,
+    Icons.local_movies,
+  ],
+  'Personal': [
+    Icons.person,
+    Icons.person_add,
+    Icons.person_outline,
+    Icons.face,
+    Icons.child_care,
+    Icons.pregnant_woman,
+    Icons.accessibility_new,
+    Icons.family_restroom,
+    Icons.wc,
+  ],
+  'Technology': [
+    Icons.computer,
+    Icons.smartphone,
+    Icons.tablet,
+    Icons.watch,
+    Icons.headset,
+    Icons.videogame_asset,
+    Icons.memory,
+    Icons.router,
+    Icons.usb,
+  ],
+  'Transport': [
+    Icons.directions_car,
+    Icons.directions_bike,
+    Icons.directions_boat,
+    Icons.directions_bus,
+    Icons.directions_railway,
+    Icons.directions_subway,
+    Icons.airplanemode_active,
+    Icons.local_taxi,
+    Icons.train,
+  ],
+  'FontAwesome': [
+    FontAwesomeIcons.addressBook,
+    FontAwesomeIcons.sprayCanSparkles,
+    FontAwesomeIcons.anchor,
+    FontAwesomeIcons.appleWhole,
+    FontAwesomeIcons.basketball,
+    FontAwesomeIcons.bell,
+    FontAwesomeIcons.bicycle,
+    FontAwesomeIcons.bolt,
+    FontAwesomeIcons.bomb,
+    FontAwesomeIcons.book,
+    FontAwesomeIcons.bug,
+    FontAwesomeIcons.mugSaucer,
+    FontAwesomeIcons.couch,
+    FontAwesomeIcons.dog,
+    FontAwesomeIcons.dove,
+    FontAwesomeIcons.feather,
+    FontAwesomeIcons.jetFighter,
+    FontAwesomeIcons.fire,
+    FontAwesomeIcons.fish,
+    FontAwesomeIcons.frog,
+    FontAwesomeIcons.gamepad,
+    FontAwesomeIcons.gem,
+    FontAwesomeIcons.gift,
+    FontAwesomeIcons.champagneGlasses,
+    FontAwesomeIcons.burger,
+    FontAwesomeIcons.heart,
+    FontAwesomeIcons.house,
+    FontAwesomeIcons.horse,
+    FontAwesomeIcons.iceCream,
+    FontAwesomeIcons.joint,
+    FontAwesomeIcons.key,
+    FontAwesomeIcons.leaf,
+    FontAwesomeIcons.lemon,
+    FontAwesomeIcons.lightbulb,
+    FontAwesomeIcons.lock,
+    FontAwesomeIcons.moon,
+    FontAwesomeIcons.motorcycle,
+    FontAwesomeIcons.music,
+    FontAwesomeIcons.paperPlane,
+    FontAwesomeIcons.paw,
+    FontAwesomeIcons.plane,
+    FontAwesomeIcons.robot,
+    FontAwesomeIcons.rocket,
+    FontAwesomeIcons.star,
+    FontAwesomeIcons.sun,
+    FontAwesomeIcons.tree,
+    FontAwesomeIcons.truck,
+    FontAwesomeIcons.umbrella,
+    FontAwesomeIcons.user,
+    FontAwesomeIcons.wineBottle,
+    FontAwesomeIcons.wrench,
+  ],
+};
+
+
+C:\Programmazione\selfpass\lib\widgets\symbol_families_selector.dart:
+import 'package:flutter/material.dart';
+import 'symbol_data.dart';
+
+typedef SymbolSelectedCallback = void Function(IconData icon, Color? color);
+
+class SymbolFamiliesSelector extends StatefulWidget {
+  final SymbolSelectedCallback onSymbolSelected;
+
+  const SymbolFamiliesSelector({super.key, required this.onSymbolSelected});
+  @override
+  SymbolFamiliesSelectorState createState() => SymbolFamiliesSelectorState();
+}
+
+class SymbolFamiliesSelectorState extends State<SymbolFamiliesSelector> {
+  final PageController _pageController = PageController();
+
+  final Map<String, List<IconData>> _symbolFamilies = symbolFamilies;
+
+  int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildFamilyPage(String familyName, List<IconData> icons) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        children: [
+          Text(
+            familyName,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 5,
+              children:
+                  icons.map((iconData) {
+                    return IconButton(
+                      icon: Icon(iconData, size: 32),
+                      onPressed: () {
+                        widget.onSymbolSelected(iconData, Colors.black);
+                      },
+                      color: Colors.black,
+                    );
+                  }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 300,
+      child: Column(
+        children: [
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
+              children:
+                  _symbolFamilies.entries
+                      .map((entry) => _buildFamilyPage(entry.key, entry.value))
+                      .toList(),
+            ),
+          ),
+          SizedBox(
+            height: 30,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_symbolFamilies.length, (index) {
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentPage == index ? 16 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _currentPage == index ? Colors.blue : Colors.grey,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\account\account_card.dart:
+import 'package:flutter/material.dart';
+import '../../models/account.dart';
+import '../../helpers/text_highlight_helper.dart';
+import '../account/account_icon.dart';
+
+class AccountCard extends StatelessWidget {
+  final Account account;
+  final String searchQuery;
+  final VoidCallback onFavoriteToggle;
+
+  const AccountCard({
+    super.key,
+    required this.account,
+    required this.searchQuery,
+    required this.onFavoriteToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        onTap: () {
+          Navigator.pushNamed(context, '/editAccount', arguments: account);
+        },
+        leading: AccountIcon(account: account),
+        title: RichText(
+          text: TextSpan(
+            style: DefaultTextStyle.of(
+              context,
+            ).style.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+            children: highlightOccurrences(account.accountName, searchQuery),
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RichText(
+              text: TextSpan(
+                style: DefaultTextStyle.of(
+                  context,
+                ).style.copyWith(fontSize: 14),
+                children: highlightOccurrences(
+                  account.username.isNotEmpty
+                      ? account.username
+                      : "No username",
+                  searchQuery,
+                ),
+              ),
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: Icon(
+            account.isFavorite ? Icons.star : Icons.star_border,
+            color: account.isFavorite ? Colors.amber : Colors.grey,
+          ),
+          onPressed: onFavoriteToggle,
+        ),
+      ),
+    );
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\account\account_icon.dart:
+import 'package:flutter/material.dart';
+import '../../models/account.dart';
+
+class AccountIcon extends StatelessWidget {
+  final Account account;
+
+  const AccountIcon({super.key, required this.account});
+
+  String _getFaviconUrl(String websiteUrl) {
+    String domain = websiteUrl;
+    if (domain.startsWith('http://')) {
+      domain = domain.substring(7);
+    } else if (domain.startsWith('https://')) {
+      domain = domain.substring(8);
+    }
+    if (domain.contains('/')) {
+      domain = domain.split('/')[0];
+    }
+    return 'https://www.google.com/s2/favicons?domain=$domain&sz=64';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final iconMode = account.iconMode;
+    switch (iconMode) {
+      case 'Website Icon':
+        if (account.accountName.isNotEmpty && account.website.isNotEmpty) {
+          return ClipOval(
+            child: Image.network(
+              _getFaviconUrl(account.website),
+              width: 40,
+              height: 40,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.language);
+              },
+            ),
+          );
+        } else {
+          return const Icon(Icons.language);
+        }
+      case 'Symbol':
+        return Icon(
+          account.symbolIcon ?? Icons.star,
+          size: 40,
+          color: account.colorIcon ?? Colors.amber,
+        );
+      case 'Color':
+        return CircleAvatar(
+          radius: 20,
+          backgroundColor: account.colorIcon ?? Colors.blueGrey,
+        );
+      case 'Custom Icon':
+        if (account.customIconPath != null &&
+            account.customIconPath?.isNotEmpty == true) {
+          return ClipOval(
+            child: Image.asset(
+              account.customIconPath!,
+              width: 40,
+              height: 40,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.image);
+              },
+            ),
+          );
+        } else {
+          return const Icon(Icons.image);
+        }
+      default:
+        return const Icon(Icons.language);
+    }
+  }
+}
+
+
+C:\Programmazione\selfpass\lib\widgets\account\account_list.dart:
+import 'package:flutter/material.dart';
+import '../../models/account.dart';
+import 'account_card.dart';
+
+class AccountList extends StatelessWidget {
+  final List<Account> accounts;
+  final String searchQuery;
+  final ValueChanged<Account> onFavoriteToggle;
+
+  const AccountList({
+    super.key,
+    required this.accounts,
+    required this.searchQuery,
+    required this.onFavoriteToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: accounts.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final account = accounts[index];
+        return AccountCard(
+          account: account,
+          searchQuery: searchQuery,
+          onFavoriteToggle: () => onFavoriteToggle(account),
+        );
+      },
     );
   }
 }
@@ -796,13 +3237,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  uuid: ^3.0.7
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  flutter_svg: ^2.1.0
-  flutter_speed_dial: ^7.0.0
   logger: ^2.5.0
+  font_awesome_flutter: ^10.8.0
 
 
 dev_dependencies:
@@ -822,38 +3263,4 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
-  assets:
-    - assets/icons/
-
-  # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/to/resolution-aware-images
-
-  # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/to/asset-from-package
-
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  fonts:
-     - family: Poppins
-       fonts:
-         - asset: fonts/Poppins-Bold.ttf
-           weight: 700
-         - asset: fonts/Poppins-Medium.ttf
-           weight: 500
-         - asset: fonts/Poppins-Regular.ttf
-           weight: 400
-         - asset: fonts/Poppins-SemiBold.ttf
-           weight: 600
-
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
 
