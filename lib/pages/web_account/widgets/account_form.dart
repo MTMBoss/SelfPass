@@ -18,12 +18,13 @@ class AccountFormState extends State<AccountForm> {
   // Controllers per i campi standard
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _loginController = TextEditingController();
+  // Campo default per la password
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
-  // Controllers per i campi "Scadenza" e "Data"
+  // Controllers per i campi Data/Scadenza
   final TextEditingController _scadenzaController = TextEditingController();
   final TextEditingController _dataController = TextEditingController();
 
@@ -38,49 +39,43 @@ class AccountFormState extends State<AccountForm> {
   Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
 
-  /// Solo il "Title" non può essere rimosso.
+  /// Solo "Title" non può essere eliminato.
   final List<String> nonRemovableFields = ['Title'];
 
-  /// I campi standard per cui abbiamo widget predefiniti.
+  /// Definisce i campi standard della UI.
   final List<String> standardFields = [
     'Title',
     'Login',
     'Password',
     'Website',
-    'Scadenza',
-    'Data',
     'One-time password (2FA)',
     'Notes',
   ];
 
-  /// Lista che determina l'ordine e la presenza dei campi nel form.
-  /// Inizialmente contiene i campi standard (default).
+  /// Lista dei campi visualizzati nel form.
+  /// Inizialmente contiene i campi standard.
   List<String> enabledFields = [
     'Title',
     'Login',
-    'Password',
+    'Password', // campo default per la password
     'Website',
     'One-time password (2FA)',
     'Notes',
   ];
 
-  /// Qui vengono memorizzati i duplicati (o campi extra) con i relativi widget e controller.
-  /// Ogni entry è una mappa con le chiavi: 'label', 'controller', 'widget'
+  /// Struttura per i campi aggiuntivi (dinamici).
+  /// Ogni entry include:
+  /// • 'label': il widget Text per la dicitura
+  /// • 'type': "password" oppure "text"
+  /// • 'controller': il TextEditingController associato
+  /// • per i campi password extra anche lo stato di visibilità e gli indicatori di forza.
   List<Map<String, dynamic>> additionalFields = [];
-
-  // Helper: converte una data dal formato "dd/MM/yyyy" a "yyyy-MM-dd"
-  String _formatDateForParse(String dateStr) {
-    final parts = dateStr.split('/');
-    if (parts.length == 3) {
-      return '${parts[2]}-${parts[1]}-${parts[0]}';
-    }
-    return dateStr;
-  }
 
   static const List<String> fieldOptions = [
     'Testo',
     'Numero',
     'Login',
+    // Se vuoi consentire di aggiungere ulteriori password, includi "Password"
     'Password',
     'Password monouso (2FA)',
     'Scadenza',
@@ -108,7 +103,7 @@ class AccountFormState extends State<AccountForm> {
 
   void _onWebsiteChanged() {
     if (_iconSelectionMode == 'Website Icon') {
-      setState(() {}); // Trigger per il rebuild.
+      setState(() {}); // trigger per il rebuild.
     }
   }
 
@@ -122,20 +117,7 @@ class AccountFormState extends State<AccountForm> {
     _passwordController.addListener(_onPasswordChanged);
   }
 
-  /// Metodo per rimuovere un campo se non è "Title".
-  void _deleteField(String fieldName) {
-    setState(() {
-      if (!nonRemovableFields.contains(fieldName)) {
-        enabledFields.remove(fieldName);
-        additionalFields.removeWhere(
-          (entry) => (entry['label'] as Text).data == fieldName,
-        );
-      }
-    });
-  }
-
-  /// Helper che incapsula il widget del campo in una Row che aggiunge un pulsante "X"
-  /// per eliminare il campo (se non è non-removibile).
+  /// Incapsula un widget campo in una Row che include anche un pulsante "X" per eliminarlo.
   Widget _wrapField(String field, Widget child) {
     if (nonRemovableFields.contains(field)) return child;
     return Row(
@@ -150,60 +132,63 @@ class AccountFormState extends State<AccountForm> {
     );
   }
 
-  /// In modalità edit ricostruiamo la lista dei campi a partire dall'account salvato.
-  /// Se il campo appare come duplicato (ad es. "Login (2)"), viene aggiunto a additionalFields.
+  /// Elimina il campo dal form, rimuovendolo sia da enabledFields che da additionalFields.
+  void _deleteField(String fieldName) {
+    setState(() {
+      if (!nonRemovableFields.contains(fieldName)) {
+        enabledFields.remove(fieldName);
+        additionalFields.removeWhere(
+          (entry) => (entry['label'] as Text).data == fieldName,
+        );
+      }
+    });
+  }
+
+  /// ---------------- Inizializzazione in Modalità Edit ----------------
+  ///
+  /// *Modifica importante:* invece di "ricostruire" enabledFields
+  /// usiamo direttamente la lista salvata in account.enabledFields.
   void _initializeWithAccount(Account account) {
     _titleController.text = account.accountName;
     _loginController.text = account.username;
-    _passwordController.text = account.password;
+    _passwordController.text = account.password; // campo default
     _websiteController.text = account.website;
     _iconSelectionMode = account.iconMode;
     _selectedSymbolIcon = account.symbolIcon;
     _selectedSymbolColor = account.colorIcon;
     _selectedColorIcon = account.colorIcon;
 
-    enabledFields = List.from([
-      'Title',
-    ]); // "Title" è sempre presente e non eliminabile.
-    for (var field in account.enabledFields) {
-      if (!enabledFields.contains(field)) {
-        enabledFields.add(field);
-      } else {
-        int count =
-            enabledFields
-                .where((e) => e == field || e.startsWith("$field ("))
-                .length;
-        enabledFields.add('$field (${count + 1})');
-      }
-    }
-    // Aggiungiamo a additionalFields solo i duplicati (o i campi extra) che non sono esattamente quelli standard.
+    // Preleva la lista dei campi salvati senza costruirla da zero.
+    enabledFields = List<String>.from(account.enabledFields);
+
+    // Per tutti i campi che non sono standard (ovvero quelli aggiuntivi, ad es. "Password (2)"),
+    // crea il controller e, se il campo è di tipo password, prepopola usando account.additionalPasswords.
     additionalFields = [];
     for (var field in enabledFields) {
-      // Se il campo è presente esattamente nei default (senza suffisso) lo tratteremo come default, non duplicato.
-      if (standardFields.contains(field) && !field.contains('(')) continue;
-      // Altrimenti, crea il widget extra.
+      if (standardFields.contains(field)) continue;
       TextEditingController controller = TextEditingController();
+      String fieldType =
+          field.toLowerCase().contains('password') ? 'password' : 'text';
+      if (fieldType == 'password') {
+        // Se il campo ha il formato "Password (2)", recupera l'indice.
+        final RegExp reg = RegExp(r'Password\s*\((\d+)\)');
+        final Match? match = reg.firstMatch(field);
+        if (match != null) {
+          int n = int.parse(match.group(1)!);
+          int index = n - 2; // Il primo extra corrisponde all'indice 0.
+          if (index >= 0 && index < account.additionalPasswords.length) {
+            controller.text = account.additionalPasswords[index];
+          }
+        }
+      }
       additionalFields.add({
         'label': Text(field),
+        'type': fieldType,
         'controller': controller,
-        'widget': Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: TextFormField(
-            controller: controller,
-            decoration: InputDecoration(
-              labelText: field,
-              border: const OutlineInputBorder(),
-              // Per "Login" (o "Email") duplicati, usiamo il suffix con l'icona per account selection.
-              suffixIcon:
-                  (field.startsWith('Login') || field.startsWith('Email'))
-                      ? IconButton(
-                        icon: const Icon(Icons.person_outline),
-                        onPressed: () => _showAccountSelection(controller),
-                      )
-                      : null,
-            ),
-          ),
-        ),
+        'passwordVisible': false,
+        'passwordStrength': 0.0,
+        'passwordStrengthLabel': '',
+        'passwordCrackTime': '',
       });
     }
   }
@@ -213,8 +198,6 @@ class AccountFormState extends State<AccountForm> {
     _titleController.dispose();
     _loginController.dispose();
     _passwordController.dispose();
-    _websiteController.removeListener(_onWebsiteChanged);
-    _passwordController.removeListener(_onPasswordChanged);
     _websiteController.dispose();
     _otpController.dispose();
     _notesController.dispose();
@@ -229,7 +212,9 @@ class AccountFormState extends State<AccountForm> {
     super.dispose();
   }
 
-  /// Mostra un popup menu per selezionare uno degli account registrati.
+  /// ---------------- Funzioni di Supporto ----------------
+
+  /// Mostra un popup per selezionare uno degli account registrati.
   void _showAccountSelection(TextEditingController controller) {
     final accounts = _accountController.accounts;
     if (accounts.isEmpty) {
@@ -281,7 +266,21 @@ class AccountFormState extends State<AccountForm> {
     });
   }
 
+  /// ---------------- Salvataggio ----------------
+  ///
+  /// Salva l’account creando:
+  /// • Il valore di password principale dal campo default
+  /// • Una lista di password extra prelevata dai campi aggiuntivi di tipo "password".
   void saveAccount() {
+    String defaultPassword = _passwordController.text.trim();
+    List<String> extraPasswords = [];
+    for (var entry in additionalFields) {
+      if (entry['type'] == 'password') {
+        String txt = entry['controller'].text.trim();
+        if (txt.isNotEmpty) extraPasswords.add(txt);
+      }
+    }
+
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -292,7 +291,8 @@ class AccountFormState extends State<AccountForm> {
     final accountToSave = Account(
       accountName: _titleController.text.trim(),
       username: _loginController.text.trim(),
-      password: _passwordController.text,
+      password: defaultPassword,
+      additionalPasswords: extraPasswords,
       website: _websiteController.text.trim(),
       iconMode: _iconSelectionMode,
       symbolIcon: _selectedSymbolIcon,
@@ -301,6 +301,7 @@ class AccountFormState extends State<AccountForm> {
       isFavorite: widget.editingAccount?.isFavorite ?? false,
       enabledFields: enabledFields,
     );
+
     try {
       if (widget.editingAccount != null) {
         final updatedAccount = accountToSave.copyWith(
@@ -336,70 +337,82 @@ class AccountFormState extends State<AccountForm> {
     );
   }
 
-  /// Widget per aggiungere un nuovo campo.
-  /// Se il campo esiste già, viene aggiunto un suffisso (ad esempio "Login (2)").
+  // Apertura del generatore per un campo password aggiuntivo.
+  void _openPasswordGeneratorForField(Map<String, dynamic> entry) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return PasswordGeneratorDialog(
+          initialLength: 12,
+          initialType: 'Random',
+          initialPassword: entry['controller'].text,
+          onPasswordGenerated: (password, length, type) {
+            setState(() {
+              entry['controller'].text = password;
+              double strength =
+                  PasswordStrengthHelper.calculatePasswordStrength(password);
+              entry['passwordStrength'] = strength;
+              entry['passwordStrengthLabel'] =
+                  PasswordStrengthHelper.getStrengthLabel(strength);
+              entry['passwordCrackTime'] =
+                  PasswordStrengthHelper.estimateCrackTime(password);
+            });
+          },
+        );
+      },
+    );
+  }
+
+  /// ---------------- Creazione Campi Aggiuntivi ----------------
+  ///
+  /// Il bottone "ADD ANOTHER FIELD" permette di aggiungere nuovi campi.
+  /// Se l'opzione scelta è "Password", viene creato un campo extra di tipo password.
   Widget _buildAddFieldButton() {
     return PopupMenuButton<String>(
       onSelected: (String selectedOption) {
         setState(() {
-          int count =
-              enabledFields
-                  .where(
-                    (e) =>
-                        e == selectedOption ||
-                        e.startsWith("$selectedOption ("),
-                  )
-                  .length;
-          String newFieldLabel = selectedOption;
-          if (count > 0) {
-            newFieldLabel = "$selectedOption (${count + 1})";
-          }
-          enabledFields.add(newFieldLabel);
-          if (!standardFields.contains(newFieldLabel)) {
-            TextEditingController? controller;
-            if (selectedOption == 'Login' ||
-                selectedOption == 'Email' ||
-                selectedOption == 'Scadenza' ||
-                selectedOption == 'Data') {
-              controller = TextEditingController();
-            }
+          if (selectedOption == 'Password') {
+            TextEditingController newPasswordController =
+                TextEditingController();
+            int count =
+                enabledFields.where((e) => e.startsWith(selectedOption)).length;
+            String newFieldLabel =
+                count == 0 ? selectedOption : "$selectedOption (${count + 1})";
+            enabledFields.add(newFieldLabel);
             additionalFields.add({
               'label': Text(newFieldLabel),
-              'widget': Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: TextFormField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    labelText: newFieldLabel,
-                    border: const OutlineInputBorder(),
-                    // Per duplicati di Login o Email, mettiamo l'icona nel prefix
-                    // oppure, se preferisci, nel suffix; in questo esempio la mettiamo nel prefix.
-                    suffixIcon:
-                        (selectedOption == 'Login' || selectedOption == 'Email')
-                            ? IconButton(
-                              icon: const Icon(Icons.person_outline),
-                              onPressed: () {
-                                if (controller != null) {
-                                  _showAccountSelection(controller);
-                                }
-                              },
-                            )
-                            : null,
-                  ),
-                ),
-              ),
+              'type': 'password',
+              'controller': newPasswordController,
+              'passwordVisible': false,
+              'passwordStrength': 0.0,
+              'passwordStrengthLabel': '',
+              'passwordCrackTime': '',
+            });
+          } else {
+            int count =
+                enabledFields
+                    .where(
+                      (e) =>
+                          e == selectedOption ||
+                          e.startsWith("$selectedOption ("),
+                    )
+                    .length;
+            String newFieldLabel =
+                count > 0 ? "$selectedOption (${count + 1})" : selectedOption;
+            enabledFields.add(newFieldLabel);
+            TextEditingController controller = TextEditingController();
+            additionalFields.add({
+              'label': Text(newFieldLabel),
+              'type': 'text',
               'controller': controller,
             });
           }
         });
       },
       itemBuilder: (BuildContext context) {
-        return fieldOptions
-            .map<PopupMenuItem<String>>(
-              (String option) =>
-                  PopupMenuItem<String>(value: option, child: Text(option)),
-            )
-            .toList();
+        return fieldOptions.map<PopupMenuItem<String>>((String option) {
+          return PopupMenuItem<String>(value: option, child: Text(option));
+        }).toList();
       },
       child: Container(
         height: 36,
@@ -417,26 +430,62 @@ class AccountFormState extends State<AccountForm> {
     );
   }
 
-  /// Costruisce il widget per un campo aggiuntivo (duplicato) usando l'entry memorizzata.
+  /// Costruisce il widget per un campo aggiuntivo in base alla configurazione corrente.
   Widget _buildAdditionalField(Map<String, dynamic> entry) {
-    Text labelWidget = entry['label'] as Text;
-    return Row(
-      children: [
-        Expanded(child: entry['widget']),
-        IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
-            setState(() {
-              additionalFields.remove(entry);
-              enabledFields.remove(labelWidget.data);
-            });
-          },
-        ),
-      ],
-    );
+    if (entry['type'] == 'password') {
+      bool visible = entry['passwordVisible'] ?? false;
+      double strength = entry['passwordStrength'] ?? 0.0;
+      String strengthLabel = entry['passwordStrengthLabel'] ?? '';
+      String crackTime = entry['passwordCrackTime'] ?? '';
+      return PasswordField(
+        controller: entry['controller'],
+        passwordVisible: visible,
+        passwordStrength: strength,
+        passwordStrengthLabel: strengthLabel,
+        passwordCrackTime: crackTime,
+        onToggleVisibility: () {
+          setState(() {
+            entry['passwordVisible'] = !(entry['passwordVisible'] ?? false);
+          });
+        },
+        onGeneratePassword: () {
+          _openPasswordGeneratorForField(entry);
+        },
+        onDelete: () {
+          setState(() {
+            additionalFields.remove(entry);
+            enabledFields.remove((entry['label'] as Text).data);
+          });
+        },
+      );
+    } else {
+      // Per campi di tipo "text":
+      return Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: entry['controller'],
+              decoration: InputDecoration(
+                labelText: (entry['label'] as Text).data,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              setState(() {
+                additionalFields.remove(entry);
+                enabledFields.remove((entry['label'] as Text).data);
+              });
+            },
+          ),
+        ],
+      );
+    }
   }
 
-  /// Costruisce in modo unificato il widget di un campo, dato il suo nome.
+  /// Costruisce il widget per un campo (standard o aggiuntivo) in base al nome.
   Widget _buildField(String field) {
     if (standardFields.contains(field) && !field.contains('(')) {
       switch (field) {
@@ -449,7 +498,6 @@ class AccountFormState extends State<AccountForm> {
             ),
           );
         case 'Login':
-          // Per Login, utilizziamo il prefixIcon per la selezione account; _wrapField aggiunge la "X".
           return _wrapField(
             'Login',
             TextFormField(
@@ -513,87 +561,11 @@ class AccountFormState extends State<AccountForm> {
               ),
             ),
           );
-        case 'Scadenza':
-          return _wrapField(
-            'Scadenza',
-            TextFormField(
-              controller: _scadenzaController,
-              readOnly: true,
-              decoration: InputDecoration(
-                labelText: 'Scadenza',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: () async {
-                    final DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate:
-                          _scadenzaController.text.isNotEmpty
-                              ? DateTime.tryParse(
-                                    _formatDateForParse(
-                                      _scadenzaController.text,
-                                    ),
-                                  ) ??
-                                  DateTime.now()
-                              : DateTime.now(),
-                      firstDate: DateTime(1900),
-                      lastDate: DateTime(2100),
-                    );
-                    if (pickedDate != null) {
-                      setState(() {
-                        _scadenzaController.text =
-                            "${pickedDate.day.toString().padLeft(2, '0')}/"
-                            "${pickedDate.month.toString().padLeft(2, '0')}/"
-                            "${pickedDate.year}";
-                      });
-                    }
-                  },
-                ),
-              ),
-            ),
-          );
-        case 'Data':
-          return _wrapField(
-            'Data',
-            TextFormField(
-              controller: _dataController,
-              readOnly: true,
-              decoration: InputDecoration(
-                labelText: 'Data',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: () async {
-                    final DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate:
-                          _dataController.text.isNotEmpty
-                              ? DateTime.tryParse(
-                                    _formatDateForParse(_dataController.text),
-                                  ) ??
-                                  DateTime.now()
-                              : DateTime.now(),
-                      firstDate: DateTime(1900),
-                      lastDate: DateTime(2100),
-                    );
-                    if (pickedDate != null) {
-                      setState(() {
-                        _dataController.text =
-                            "${pickedDate.day.toString().padLeft(2, '0')}/"
-                            "${pickedDate.month.toString().padLeft(2, '0')}/"
-                            "${pickedDate.year}";
-                      });
-                    }
-                  },
-                ),
-              ),
-            ),
-          );
         default:
           break;
       }
     }
-    // Per duplicati o campi aggiuntivi, cerchiamo l'entry in additionalFields.
+    // Per campi aggiuntivi (pressione: quelli che contengono parentesi nel nome)
     Map<String, dynamic>? entry;
     try {
       entry = additionalFields.firstWhere(
@@ -608,7 +580,7 @@ class AccountFormState extends State<AccountForm> {
     return const SizedBox();
   }
 
-  /// Costruisce la lista completa dei widget dei campi in base a enabledFields.
+  /// Costruisce la lista di tutti i campi del form.
   List<Widget> _buildAllFields() {
     return enabledFields.map((field) {
       return Padding(
@@ -624,12 +596,7 @@ class AccountFormState extends State<AccountForm> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Visualizza tutti i campi (default e duplicati) in un unico elenco.
-          ..._buildAllFields(),
-          // Pulsante per aggiungere un nuovo campo.
-          _buildAddFieldButton(),
-        ],
+        children: [..._buildAllFields(), _buildAddFieldButton()],
       ),
     );
   }

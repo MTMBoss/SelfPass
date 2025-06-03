@@ -5,17 +5,18 @@ class Account {
   final String id;
   final String accountName;
   final String username;
-  final String password;
+  final String password; // password principale
+  final List<String> additionalPasswords; // password extra
   final String website;
   bool isFavorite;
 
-  // Icon related fields
+  // Campi relativi alle icone
   final String iconMode;
   final IconData? symbolIcon;
   final Color? colorIcon;
   final String? customIconPath;
 
-  // Field configuration
+  // Configurazione dei campi (in questo caso usata solo per la UI)
   final List<String> enabledFields;
 
   Account({
@@ -24,6 +25,7 @@ class Account {
     required this.username,
     required this.password,
     required this.website,
+    this.additionalPasswords = const [],
     this.isFavorite = false,
     this.iconMode = 'Website Icon',
     this.symbolIcon,
@@ -47,6 +49,7 @@ class Account {
     String? accountName,
     String? username,
     String? password,
+    List<String>? additionalPasswords,
     String? website,
     bool? isFavorite,
     String? iconMode,
@@ -60,6 +63,7 @@ class Account {
       accountName: accountName ?? this.accountName,
       username: username ?? this.username,
       password: password ?? this.password,
+      additionalPasswords: additionalPasswords ?? this.additionalPasswords,
       website: website ?? this.website,
       isFavorite: isFavorite ?? this.isFavorite,
       iconMode: iconMode ?? this.iconMode,
