@@ -1,5 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import '../helpers/password_strength_helper.dart';
+import 'package:flutter/services.dart';
 
 typedef PasswordGeneratedCallback =
     void Function(String password, int length, String type);
@@ -24,73 +25,101 @@ class PasswordGeneratorDialog extends StatefulWidget {
 
 class PasswordGeneratorDialogState extends State<PasswordGeneratorDialog> {
   late int _length;
-  late String _type;
-  late String _password;
-  late TextEditingController _passwordController;
-  double _passwordStrength = 0;
-  String _crackTime = '';
-
-  Color _getStrengthColor(double strength) {
-    if (strength < 0.5) return Colors.red;
-    if (strength < 0.75) return Colors.orange;
-    return Colors.green;
-  }
+  late String
+  _type; // ad esempio "Random", "Memorizable", "Numbers", "Letters+Numbers"
+  late String _generatedPassword;
+  double _entropy = 0;
+  String _strengthLabel = "";
+  String _crackTime = "";
 
   @override
   void initState() {
     super.initState();
     _length = widget.initialLength;
     _type = widget.initialType;
-    _password = widget.initialPassword;
-    _passwordController = TextEditingController(text: _password);
+    _generatedPassword = widget.initialPassword;
     _generatePassword();
-    _updatePasswordStrength();
   }
 
+  /// Genera la password usando il set di caratteri in base al tipo selezionato.
   void _generatePassword() {
-    const letters = 'abcdefghijklmnopqrstuvwxyz';
-    const numbers = '0123456789';
-    const symbols = '!@#\$%^&*()-_=+[]{}|;:,.<>?';
+    const String lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const String uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const String numbers = "0123456789";
+    const String symbols = "!@#\$%^&*()-_=+[]{}|;:,.<>?";
 
-    String chars = '';
+    String availableChars = "";
     switch (_type) {
-      case 'Memorizable':
-        chars = 'aeioulnrst';
+      case "Memorizable":
+        availableChars = "aeioulnrst";
         break;
-      case 'Numbers':
-        chars = numbers;
+      case "Numbers":
+        availableChars = numbers;
         break;
-      case 'Random':
-        chars = letters + letters.toUpperCase() + numbers + symbols;
+      case "Letters+Numbers":
+        availableChars = lowercase + uppercase + numbers;
         break;
-      case 'Letters+Numbers':
-        chars = letters + letters.toUpperCase() + numbers;
-        break;
+      case "Random":
       default:
-        chars = letters + letters.toUpperCase() + numbers + symbols;
+        availableChars = lowercase + uppercase + numbers + symbols;
+        break;
+    }
+    // Assicuriamoci che sia disponibile almeno un gruppo
+    if (availableChars.isEmpty) {
+      availableChars = lowercase;
     }
 
-    final rand =
-        List.generate(_length, (index) {
-          final idx =
-              (DateTime.now().millisecondsSinceEpoch + index) % chars.length;
-          return chars[idx];
-        }).join();
+    final random = Random.secure();
+    String password =
+        List.generate(
+          _length,
+          (_) => availableChars[random.nextInt(availableChars.length)],
+        ).join();
 
     setState(() {
-      _password = rand;
-      _passwordController.text = _password;
-      _updatePasswordStrength();
+      _generatedPassword = password;
+      _entropy = _calculateEntropy(availableChars);
+      _strengthLabel = _getStrengthLabel(_entropy);
+      _crackTime = _estimateCrackTime(_entropy);
     });
   }
 
-  void _updatePasswordStrength() {
-    setState(() {
-      _passwordStrength = PasswordStrengthHelper.calculatePasswordStrength(
-        _password,
-      );
-      _crackTime = PasswordStrengthHelper.estimateCrackTime(_password);
-    });
+  /// Calcola l’entropia stimata (in bit) come: lunghezza * log₂(pool dei caratteri)
+  double _calculateEntropy(String availableChars) {
+    int poolSize = availableChars.length;
+    return _length * (log(poolSize) / log(2));
+  }
+
+  /// Restituisce una label basata sui bit di entropia.
+  String _getStrengthLabel(double entropy) {
+    if (entropy < 28) return "Very Weak";
+    if (entropy < 35) return "Weak";
+    if (entropy < 59) return "Reasonable";
+    if (entropy < 127) return "Strong";
+    return "Very Strong";
+  }
+
+  /// Stima il tempo di cracking (basato su un tasso di 10^10 ipotesi/s)
+  String _estimateCrackTime(double entropy) {
+    double totalGuesses = pow(2, entropy).toDouble();
+    double seconds = totalGuesses / 1e10;
+    if (seconds < 60) return "${seconds.toStringAsFixed(0)} seconds";
+    double minutes = seconds / 60;
+    if (minutes < 60) return "${minutes.toStringAsFixed(0)} minutes";
+    double hours = minutes / 60;
+    if (hours < 24) return "${hours.toStringAsFixed(0)} hours";
+    double days = hours / 24;
+    if (days < 365) return "${days.toStringAsFixed(0)} days";
+    double years = days / 365;
+    return "${years.toStringAsFixed(1)} years";
+  }
+
+  /// Copia la password negli appunti e mostra uno SnackBar
+  void _copyToClipboard() {
+    Clipboard.setData(ClipboardData(text: _generatedPassword));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Password copied to clipboard")),
+    );
   }
 
   void _onGeneratePressed() {
@@ -98,12 +127,21 @@ class PasswordGeneratorDialogState extends State<PasswordGeneratorDialog> {
   }
 
   void _onOkPressed() {
-    widget.onPasswordGenerated(_password, _length, _type);
+    widget.onPasswordGenerated(_generatedPassword, _length, _type);
     Navigator.of(context).pop();
   }
 
   void _onCancelPressed() {
     Navigator.of(context).pop();
+  }
+
+  void _onTypeChanged(String? newType) {
+    if (newType != null) {
+      setState(() {
+        _type = newType;
+        _generatePassword();
+      });
+    }
   }
 
   @override
@@ -113,137 +151,126 @@ class PasswordGeneratorDialogState extends State<PasswordGeneratorDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Password Generator',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            // Password display with refresh icon
-            TextField(
-              controller: _passwordController,
-              readOnly: true,
-              decoration: InputDecoration(
-                border: const UnderlineInputBorder(),
-                hintText: 'Generated password will appear here',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _onGeneratePressed,
-                ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Password Generator',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-
-            const SizedBox(height: 8),
-
-            // Password strength indicator
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: _passwordStrength,
-                    backgroundColor: Colors.grey[300],
-                    color: _getStrengthColor(_passwordStrength),
-                    minHeight: 4,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Crack time: $_crackTime',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Length display and slider
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              const SizedBox(height: 16),
+              // Campo per visualizzare la password generata con l'icona per copiarla
+              Row(
                 children: [
-                  Text(
-                    'Length: $_length',
-                    style: const TextStyle(fontSize: 14),
+                  Expanded(
+                    child: TextField(
+                      controller: TextEditingController(
+                        text: _generatedPassword,
+                      ),
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy),
+                    onPressed: _copyToClipboard,
                   ),
                 ],
               ),
-            ),
-            Slider(
-              value: _length.toDouble(),
-              min: 8,
-              max: 64,
-              divisions: 56,
-              label: _length.toString(),
-              onChanged: (value) {
-                setState(() {
-                  _length = value.toInt();
-                  _generatePassword();
-                });
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            // Password type dropdown
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(4),
+              const SizedBox(height: 16),
+              // Slider per la lunghezza della password
+              Row(
+                children: [
+                  Text("Length: $_length"),
+                  Expanded(
+                    child: Slider(
+                      value: _length.toDouble(),
+                      min: 6,
+                      max: 64,
+                      divisions: 58,
+                      label: _length.toString(),
+                      onChanged: (value) {
+                        setState(() {
+                          _length = value.toInt();
+                          _generatePassword();
+                        });
+                      },
+                    ),
+                  ),
+                ],
               ),
-              child: DropdownButton<String>(
+              const SizedBox(height: 16),
+              // Dropdown per il tipo di password
+              DropdownButton<String>(
                 value: _type,
-                isExpanded: true,
-                underline: const SizedBox(),
                 items: const [
                   DropdownMenuItem(
-                    value: 'Memorizable',
-                    child: Text('Memorizable'),
+                    value: "Memorizable",
+                    child: Text("Memorizable"),
                   ),
-                  DropdownMenuItem(value: 'Numbers', child: Text('Numbers')),
-                  DropdownMenuItem(value: 'Random', child: Text('Random')),
+                  DropdownMenuItem(value: "Numbers", child: Text("Numbers")),
+                  DropdownMenuItem(value: "Random", child: Text("Random")),
                   DropdownMenuItem(
-                    value: 'Letters+Numbers',
-                    child: Text('Letters+Numbers'),
+                    value: "Letters+Numbers",
+                    child: Text("Letters+Numbers"),
                   ),
                 ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _type = value;
-                      _generatePassword();
-                    });
-                  }
-                },
+                onChanged: _onTypeChanged,
               ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Action buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: _onCancelPressed,
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _onOkPressed,
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(height: 16),
+              // Aggiungiamo qui il nuovo pulsante per cambiare password
+              ElevatedButton(
+                onPressed: _onGeneratePressed,
+                child: const Text("Change Password"),
+              ),
+              const SizedBox(height: 16),
+              // Indicatore di forza e stima del tempo di cracking
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Strength: $_strengthLabel"),
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: _entropy / 100, // Scala arbitraria per la UI
+                      backgroundColor: Colors.grey[300],
+                      color:
+                          _entropy < 28
+                              ? Colors.red
+                              : _entropy < 35
+                              ? Colors.orange
+                              : _entropy < 59
+                              ? Colors.yellow
+                              : Colors.green,
+                      minHeight: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text("Estimated crack time: $_crackTime"),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Pulsanti di azione: Cancel e OK
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _onCancelPressed,
+                    child: const Text("Cancel"),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _onOkPressed,
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
