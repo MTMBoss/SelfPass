@@ -1,5 +1,5 @@
 
-### Aggiornato il 05/31/2025 16:40:02 ###
+### Aggiornato il 06/03/2025 13:47:12 ###
 
 Elenco del percorso delle cartelle
 Numero di serie del volume: 6EB3-501E
@@ -1031,7 +1031,6 @@ import '../../../models/account.dart';
 import '../../../helpers/password_strength_helper.dart';
 import '../../../widgets/password_generator_dialog.dart';
 import 'password_field.dart';
-import 'icon_selector.dart';
 
 class AccountForm extends StatefulWidget {
   final Account? editingAccount;
@@ -1066,17 +1065,10 @@ class AccountFormState extends State<AccountForm> {
   Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
 
-  // Campi obbligatori (non eliminabili)
-  final List<String> mandatoryFields = [
-    'Title',
-    'Login',
-    'Password',
-    'Website',
-    'One-time password (2FA)',
-    'Notes',
-  ];
+  /// Solo il "Title" non può essere rimosso.
+  final List<String> nonRemovableFields = ['Title'];
 
-  // Campi standard (con widget predefiniti per il loro rendering; questi non avranno duplicati insignificanti)
+  /// I campi standard per cui abbiamo widget predefiniti.
   final List<String> standardFields = [
     'Title',
     'Login',
@@ -1088,8 +1080,8 @@ class AccountFormState extends State<AccountForm> {
     'Notes',
   ];
 
-  /// Lista che determina l’ordine e la presenza dei campi nel form.
-  /// Di default contiene i campi obbligatori.
+  /// Lista che determina l'ordine e la presenza dei campi nel form.
+  /// Inizialmente contiene i campi standard (default).
   List<String> enabledFields = [
     'Title',
     'Login',
@@ -1100,10 +1092,10 @@ class AccountFormState extends State<AccountForm> {
   ];
 
   /// Qui vengono memorizzati i duplicati (o campi extra) con i relativi widget e controller.
-  /// Ogni entry è una mappa con chiavi: 'label', 'controller' e 'widget'.
+  /// Ogni entry è una mappa con le chiavi: 'label', 'controller', 'widget'
   List<Map<String, dynamic>> additionalFields = [];
 
-  // Helper: converte una data dal formato "dd/MM/yyyy" a "yyyy-MM-dd".
+  // Helper: converte una data dal formato "dd/MM/yyyy" a "yyyy-MM-dd"
   String _formatDateForParse(String dateStr) {
     final parts = dateStr.split('/');
     if (parts.length == 3) {
@@ -1143,7 +1135,7 @@ class AccountFormState extends State<AccountForm> {
 
   void _onWebsiteChanged() {
     if (_iconSelectionMode == 'Website Icon') {
-      setState(() {}); // trigger per il rebuild
+      setState(() {}); // Trigger per il rebuild.
     }
   }
 
@@ -1157,10 +1149,10 @@ class AccountFormState extends State<AccountForm> {
     _passwordController.addListener(_onPasswordChanged);
   }
 
-  /// Metodo per rimuovere un campo (se non obbligatorio).
+  /// Metodo per rimuovere un campo se non è "Title".
   void _deleteField(String fieldName) {
     setState(() {
-      if (!mandatoryFields.contains(fieldName)) {
+      if (!nonRemovableFields.contains(fieldName)) {
         enabledFields.remove(fieldName);
         additionalFields.removeWhere(
           (entry) => (entry['label'] as Text).data == fieldName,
@@ -1169,8 +1161,24 @@ class AccountFormState extends State<AccountForm> {
     });
   }
 
-  /// In modalità edit, ricostruiamo la lista dei campi e per ogni duplicato (non standard)
-  /// creiamo anche in additionalFields il relativo widget con controller vuoto.
+  /// Helper che incapsula il widget del campo in una Row che aggiunge un pulsante "X"
+  /// per eliminare il campo (se non è non-removibile).
+  Widget _wrapField(String field, Widget child) {
+    if (nonRemovableFields.contains(field)) return child;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: child),
+        IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => _deleteField(field),
+        ),
+      ],
+    );
+  }
+
+  /// In modalità edit ricostruiamo la lista dei campi a partire dall'account salvato.
+  /// Se il campo appare come duplicato (ad es. "Login (2)"), viene aggiunto a additionalFields.
   void _initializeWithAccount(Account account) {
     _titleController.text = account.accountName;
     _loginController.text = account.username;
@@ -1181,8 +1189,9 @@ class AccountFormState extends State<AccountForm> {
     _selectedSymbolColor = account.colorIcon;
     _selectedColorIcon = account.colorIcon;
 
-    enabledFields = List.from(mandatoryFields);
-    // Aggiungo tutti i campi salvati (inclusi duplicati) in enabledFields.
+    enabledFields = List.from([
+      'Title',
+    ]); // "Title" è sempre presente e non eliminabile.
     for (var field in account.enabledFields) {
       if (!enabledFields.contains(field)) {
         enabledFields.add(field);
@@ -1194,35 +1203,35 @@ class AccountFormState extends State<AccountForm> {
         enabledFields.add('$field (${count + 1})');
       }
     }
-    // Per ogni campo in enabledFields che non è tra i campi standard obbligatori, lo gestiamo come extra.
+    // Aggiungiamo a additionalFields solo i duplicati (o i campi extra) che non sono esattamente quelli standard.
     additionalFields = [];
     for (var field in enabledFields) {
-      if (!standardFields.contains(field) && !mandatoryFields.contains(field)) {
-        TextEditingController controller = TextEditingController();
-        additionalFields.add({
-          'label': Text(field),
-          'controller': controller,
-          'widget': Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: TextFormField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: field,
-                border: const OutlineInputBorder(),
-                // Se si tratta di un campo "Login" o "Email", mostriamo l'icona del personaggio nel suffix
-                prefixIcon: null,
-                suffixIcon:
-                    (field.startsWith('Login') || field.startsWith('Email'))
-                        ? IconButton(
-                          icon: const Icon(Icons.person_outline),
-                          onPressed: () => _showAccountSelection(controller),
-                        )
-                        : null,
-              ),
+      // Se il campo è presente esattamente nei default (senza suffisso) lo tratteremo come default, non duplicato.
+      if (standardFields.contains(field) && !field.contains('(')) continue;
+      // Altrimenti, crea il widget extra.
+      TextEditingController controller = TextEditingController();
+      additionalFields.add({
+        'label': Text(field),
+        'controller': controller,
+        'widget': Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: TextFormField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: field,
+              border: const OutlineInputBorder(),
+              // Per "Login" (o "Email") duplicati, usiamo il suffix con l'icona per account selection.
+              suffixIcon:
+                  (field.startsWith('Login') || field.startsWith('Email'))
+                      ? IconButton(
+                        icon: const Icon(Icons.person_outline),
+                        onPressed: () => _showAccountSelection(controller),
+                      )
+                      : null,
             ),
           ),
-        });
-      }
+        ),
+      });
     }
   }
 
@@ -1247,8 +1256,7 @@ class AccountFormState extends State<AccountForm> {
     super.dispose();
   }
 
-  /// Mostra un menu popup per selezionare uno degli account registrati.
-  /// Quando se ne seleziona uno, il testo del controller passato viene aggiornato.
+  /// Mostra un popup menu per selezionare uno degli account registrati.
   void _showAccountSelection(TextEditingController controller) {
     final accounts = _accountController.accounts;
     if (accounts.isEmpty) {
@@ -1356,7 +1364,7 @@ class AccountFormState extends State<AccountForm> {
   }
 
   /// Widget per aggiungere un nuovo campo.
-  /// Se il campo è già presente, viene aggiunto un suffisso (ad esempio "Login (2)").
+  /// Se il campo esiste già, viene aggiunto un suffisso (ad esempio "Login (2)").
   Widget _buildAddFieldButton() {
     return PopupMenuButton<String>(
       onSelected: (String selectedOption) {
@@ -1374,7 +1382,6 @@ class AccountFormState extends State<AccountForm> {
             newFieldLabel = "$selectedOption (${count + 1})";
           }
           enabledFields.add(newFieldLabel);
-          // Se il nuovo campo non è standard, aggiungilo anche a additionalFields.
           if (!standardFields.contains(newFieldLabel)) {
             TextEditingController? controller;
             if (selectedOption == 'Login' ||
@@ -1392,8 +1399,8 @@ class AccountFormState extends State<AccountForm> {
                   decoration: InputDecoration(
                     labelText: newFieldLabel,
                     border: const OutlineInputBorder(),
-                    // Per duplicati di Login o Email, solo icona nel suffix
-                    prefixIcon: null,
+                    // Per duplicati di Login o Email, mettiamo l'icona nel prefix
+                    // oppure, se preferisci, nel suffix; in questo esempio la mettiamo nel prefix.
                     suffixIcon:
                         (selectedOption == 'Login' || selectedOption == 'Email')
                             ? IconButton(
@@ -1414,9 +1421,12 @@ class AccountFormState extends State<AccountForm> {
         });
       },
       itemBuilder: (BuildContext context) {
-        return fieldOptions.map<PopupMenuItem<String>>((String option) {
-          return PopupMenuItem<String>(value: option, child: Text(option));
-        }).toList();
+        return fieldOptions
+            .map<PopupMenuItem<String>>(
+              (String option) =>
+                  PopupMenuItem<String>(value: option, child: Text(option)),
+            )
+            .toList();
       },
       child: Container(
         height: 36,
@@ -1458,66 +1468,26 @@ class AccountFormState extends State<AccountForm> {
     if (standardFields.contains(field) && !field.contains('(')) {
       switch (field) {
         case 'Title':
-          return Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _titleController,
-                  decoration: InputDecoration(
-                    labelText: 'Title',
-                    border: const OutlineInputBorder(),
-                    suffixIcon:
-                        mandatoryFields.contains('Title')
-                            ? null
-                            : IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed:
-                                  () => setState(
-                                    () => enabledFields.remove('Title'),
-                                  ),
-                            ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconSelector(
-                iconSelectionMode: _iconSelectionMode,
-                websiteUrl: _websiteController.text,
-                selectedSymbolIcon: _selectedSymbolIcon,
-                selectedSymbolColor: _selectedSymbolColor,
-                selectedColorIcon: _selectedColorIcon,
-                onModeSelected: (mode) {
-                  setState(() {
-                    _iconSelectionMode = mode;
-                  });
-                },
-                onSymbolSelected: (icon, color) {
-                  setState(() {
-                    _selectedSymbolIcon = icon;
-                    _selectedSymbolColor = color;
-                    _selectedColorIcon = null;
-                  });
-                },
-                onColorSelected: (color) {
-                  setState(() {
-                    _selectedColorIcon = color;
-                    _selectedSymbolIcon = null;
-                    _selectedSymbolColor = null;
-                  });
-                },
-              ),
-            ],
+          return TextFormField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              labelText: 'Title',
+              border: OutlineInputBorder(),
+            ),
           );
         case 'Login':
-          // Rimuoviamo i 3 puntini e mettiamo l'icona del personaggio come suffix.
-          return TextFormField(
-            controller: _loginController,
-            decoration: InputDecoration(
-              labelText: 'Login',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.person_outline),
-                onPressed: () => _showAccountSelection(_loginController),
+          // Per Login, utilizziamo il prefixIcon per la selezione account; _wrapField aggiunge la "X".
+          return _wrapField(
+            'Login',
+            TextFormField(
+              controller: _loginController,
+              decoration: InputDecoration(
+                labelText: 'Login',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.person_outline),
+                  onPressed: () => _showAccountSelection(_loginController),
+                ),
               ),
             ),
           );
@@ -1537,117 +1507,112 @@ class AccountFormState extends State<AccountForm> {
             onDelete: () => _deleteField('Password'),
           );
         case 'Website':
-          return TextFormField(
-            controller: _websiteController,
-            decoration: InputDecoration(
-              labelText: 'Website',
-              border: const OutlineInputBorder(),
-              suffixIcon:
-                  mandatoryFields.contains('Website')
-                      ? null
-                      : IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => _deleteField('Website'),
-                      ),
+          return _wrapField(
+            'Website',
+            TextFormField(
+              controller: _websiteController,
+              decoration: const InputDecoration(
+                labelText: 'Website',
+                border: OutlineInputBorder(),
+              ),
             ),
           );
         case 'One-time password (2FA)':
-          return TextFormField(
-            controller: _otpController,
-            decoration: InputDecoration(
-              labelText: 'One-time password (2FA)',
-              border: const OutlineInputBorder(),
-              suffixIcon:
-                  mandatoryFields.contains('One-time password (2FA)')
-                      ? null
-                      : IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed:
-                            () => _deleteField('One-time password (2FA)'),
-                      ),
+          return _wrapField(
+            'One-time password (2FA)',
+            TextFormField(
+              controller: _otpController,
+              decoration: const InputDecoration(
+                labelText: 'One-time password (2FA)',
+                border: OutlineInputBorder(),
+              ),
             ),
           );
         case 'Notes':
-          return TextFormField(
-            controller: _notesController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              labelText: 'Notes',
-              border: const OutlineInputBorder(),
-              suffixIcon:
-                  mandatoryFields.contains('Notes')
-                      ? null
-                      : IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => _deleteField('Notes'),
-                      ),
+          return _wrapField(
+            'Notes',
+            TextFormField(
+              controller: _notesController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                border: OutlineInputBorder(),
+              ),
             ),
           );
         case 'Scadenza':
-          return TextFormField(
-            controller: _scadenzaController,
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: 'Scadenza',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: () async {
-                  final DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate:
-                        _scadenzaController.text.isNotEmpty
-                            ? DateTime.tryParse(
-                                  _formatDateForParse(_scadenzaController.text),
-                                ) ??
-                                DateTime.now()
-                            : DateTime.now(),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime(2100),
-                  );
-                  if (pickedDate != null) {
-                    setState(() {
-                      _scadenzaController.text =
-                          "${pickedDate.day.toString().padLeft(2, '0')}/"
-                          "${pickedDate.month.toString().padLeft(2, '0')}/"
-                          "${pickedDate.year}";
-                    });
-                  }
-                },
+          return _wrapField(
+            'Scadenza',
+            TextFormField(
+              controller: _scadenzaController,
+              readOnly: true,
+              decoration: InputDecoration(
+                labelText: 'Scadenza',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: () async {
+                    final DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate:
+                          _scadenzaController.text.isNotEmpty
+                              ? DateTime.tryParse(
+                                    _formatDateForParse(
+                                      _scadenzaController.text,
+                                    ),
+                                  ) ??
+                                  DateTime.now()
+                              : DateTime.now(),
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      setState(() {
+                        _scadenzaController.text =
+                            "${pickedDate.day.toString().padLeft(2, '0')}/"
+                            "${pickedDate.month.toString().padLeft(2, '0')}/"
+                            "${pickedDate.year}";
+                      });
+                    }
+                  },
+                ),
               ),
             ),
           );
         case 'Data':
-          return TextFormField(
-            controller: _dataController,
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: 'Data',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: () async {
-                  final DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate:
-                        _dataController.text.isNotEmpty
-                            ? DateTime.tryParse(
-                                  _formatDateForParse(_dataController.text),
-                                ) ??
-                                DateTime.now()
-                            : DateTime.now(),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime(2100),
-                  );
-                  if (pickedDate != null) {
-                    setState(() {
-                      _dataController.text =
-                          "${pickedDate.day.toString().padLeft(2, '0')}/"
-                          "${pickedDate.month.toString().padLeft(2, '0')}/"
-                          "${pickedDate.year}";
-                    });
-                  }
-                },
+          return _wrapField(
+            'Data',
+            TextFormField(
+              controller: _dataController,
+              readOnly: true,
+              decoration: InputDecoration(
+                labelText: 'Data',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: () async {
+                    final DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate:
+                          _dataController.text.isNotEmpty
+                              ? DateTime.tryParse(
+                                    _formatDateForParse(_dataController.text),
+                                  ) ??
+                                  DateTime.now()
+                              : DateTime.now(),
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      setState(() {
+                        _dataController.text =
+                            "${pickedDate.day.toString().padLeft(2, '0')}/"
+                            "${pickedDate.month.toString().padLeft(2, '0')}/"
+                            "${pickedDate.year}";
+                      });
+                    }
+                  },
+                ),
               ),
             ),
           );
@@ -1670,7 +1635,7 @@ class AccountFormState extends State<AccountForm> {
     return const SizedBox();
   }
 
-  /// Costruisce la lista completa dei widget (campi) in base a enabledFields.
+  /// Costruisce la lista completa dei widget dei campi in base a enabledFields.
   List<Widget> _buildAllFields() {
     return enabledFields.map((field) {
       return Padding(
@@ -1687,7 +1652,7 @@ class AccountFormState extends State<AccountForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Visualizza TUTTI i campi (standard e duplicati) in un unico elenco.
+          // Visualizza tutti i campi (default e duplicati) in un unico elenco.
           ..._buildAllFields(),
           // Pulsante per aggiungere un nuovo campo.
           _buildAddFieldButton(),

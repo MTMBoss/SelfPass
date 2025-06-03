@@ -4,6 +4,7 @@ import '../../../models/account.dart';
 import '../../../helpers/password_strength_helper.dart';
 import '../../../widgets/password_generator_dialog.dart';
 import 'password_field.dart';
+import 'icon_selector.dart';
 
 class AccountForm extends StatefulWidget {
   final Account? editingAccount;
@@ -20,11 +21,12 @@ class AccountFormState extends State<AccountForm> {
   final TextEditingController _loginController = TextEditingController();
   // Campo default per la password
   final TextEditingController _passwordController = TextEditingController();
+  // Campo website standard
   final TextEditingController _websiteController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
-  // Controllers per i campi Data/Scadenza
+  // Controllers per i campi Data e Scadenza
   final TextEditingController _scadenzaController = TextEditingController();
   final TextEditingController _dataController = TextEditingController();
 
@@ -42,7 +44,7 @@ class AccountFormState extends State<AccountForm> {
   /// Solo "Title" non può essere eliminato.
   final List<String> nonRemovableFields = ['Title'];
 
-  /// Definisce i campi standard della UI.
+  /// Campi standard della UI
   final List<String> standardFields = [
     'Title',
     'Login',
@@ -57,29 +59,28 @@ class AccountFormState extends State<AccountForm> {
   List<String> enabledFields = [
     'Title',
     'Login',
-    'Password', // campo default per la password
-    'Website',
+    'Password', // Campo default per la password
+    'Website', // Campo default per WebSite
     'One-time password (2FA)',
     'Notes',
   ];
 
   /// Struttura per i campi aggiuntivi (dinamici).
-  /// Ogni entry include:
-  /// • 'label': il widget Text per la dicitura
-  /// • 'type': "password" oppure "text"
+  /// Ogni voce contiene:
+  /// • 'label': un widget Text che rappresenta il nome del campo
+  /// • 'type': "password", "website" oppure "text"
   /// • 'controller': il TextEditingController associato
-  /// • per i campi password extra anche lo stato di visibilità e gli indicatori di forza.
+  /// • per password, anche lo stato di visibilità ed altri indicatori
   List<Map<String, dynamic>> additionalFields = [];
 
+  // In fieldOptions includiamo "Website" per permettere all'utente di aggiungerlo (nel caso in cui venga eliminato il default)
   static const List<String> fieldOptions = [
     'Testo',
     'Numero',
     'Login',
-    // Se vuoi consentire di aggiungere ulteriori password, includi "Password"
     'Password',
     'Password monouso (2FA)',
-    'Scadenza',
-    'Sito web',
+    'Website',
     'Email',
     'Telefono',
     'Data',
@@ -87,6 +88,20 @@ class AccountFormState extends State<AccountForm> {
     'Privato',
     'Applicazione',
   ];
+
+  // Restituisce il sito web in uso. Se il campo standard "Website" è presente lo usa; altrimenti, cerca tra quelli aggiunti.
+  String getWebsiteUrl() {
+    if (enabledFields.contains('Website')) {
+      return _websiteController.text;
+    } else {
+      for (var entry in additionalFields) {
+        if (entry['type'] == 'website') {
+          return (entry['controller'] as TextEditingController).text;
+        }
+      }
+    }
+    return "";
+  }
 
   void _onPasswordChanged() {
     final password = _passwordController.text;
@@ -102,22 +117,23 @@ class AccountFormState extends State<AccountForm> {
   }
 
   void _onWebsiteChanged() {
+    // Quando cambia il valore nel campo standard, aggiorniamo l'icona.
     if (_iconSelectionMode == 'Website Icon') {
-      setState(() {}); // trigger per il rebuild.
+      setState(() {});
     }
   }
 
   @override
   void initState() {
     super.initState();
+    _websiteController.addListener(_onWebsiteChanged);
+    _passwordController.addListener(_onPasswordChanged);
     if (widget.editingAccount != null) {
       _initializeWithAccount(widget.editingAccount!);
     }
-    _websiteController.addListener(_onWebsiteChanged);
-    _passwordController.addListener(_onPasswordChanged);
   }
 
-  /// Incapsula un widget campo in una Row che include anche un pulsante "X" per eliminarlo.
+  /// Incapsula un widget campo in una Row che include un pulsante "X" per eliminarlo.
   Widget _wrapField(String field, Widget child) {
     if (nonRemovableFields.contains(field)) return child;
     return Row(
@@ -132,7 +148,7 @@ class AccountFormState extends State<AccountForm> {
     );
   }
 
-  /// Elimina il campo dal form, rimuovendolo sia da enabledFields che da additionalFields.
+  /// Elimina il campo dal form.
   void _deleteField(String fieldName) {
     setState(() {
       if (!nonRemovableFields.contains(fieldName)) {
@@ -144,10 +160,10 @@ class AccountFormState extends State<AccountForm> {
     });
   }
 
-  /// ---------------- Inizializzazione in Modalità Edit ----------------
-  ///
-  /// *Modifica importante:* invece di "ricostruire" enabledFields
-  /// usiamo direttamente la lista salvata in account.enabledFields.
+  /// Modalità Edit:
+  /// Utilizza direttamente la lista salvata in account.enabledFields (senza duplicare "Title")
+  /// e per ogni campo extra (non standard) crea il controller. Se il campo è di tipo "password"
+  /// prepopola il controller usando account.additionalPasswords; se è di tipo "website", usalo per il sito.
   void _initializeWithAccount(Account account) {
     _titleController.text = account.accountName;
     _loginController.text = account.username;
@@ -158,28 +174,34 @@ class AccountFormState extends State<AccountForm> {
     _selectedSymbolColor = account.colorIcon;
     _selectedColorIcon = account.colorIcon;
 
-    // Preleva la lista dei campi salvati senza costruirla da zero.
+    // Copia la lista salvata per non duplicare "Title"
     enabledFields = List<String>.from(account.enabledFields);
 
-    // Per tutti i campi che non sono standard (ovvero quelli aggiuntivi, ad es. "Password (2)"),
-    // crea il controller e, se il campo è di tipo password, prepopola usando account.additionalPasswords.
+    // Per ogni campo extra (non standard) in enabledFields, crea il controller.
     additionalFields = [];
     for (var field in enabledFields) {
       if (standardFields.contains(field)) continue;
       TextEditingController controller = TextEditingController();
       String fieldType =
-          field.toLowerCase().contains('password') ? 'password' : 'text';
+          field.toLowerCase().contains('password')
+              ? 'password'
+              : (field.toLowerCase().contains('website') ? 'website' : 'text');
       if (fieldType == 'password') {
-        // Se il campo ha il formato "Password (2)", recupera l'indice.
         final RegExp reg = RegExp(r'Password\s*\((\d+)\)');
         final Match? match = reg.firstMatch(field);
         if (match != null) {
           int n = int.parse(match.group(1)!);
-          int index = n - 2; // Il primo extra corrisponde all'indice 0.
+          int index = n - 2; // Primo extra -> indice 0
           if (index >= 0 && index < account.additionalPasswords.length) {
             controller.text = account.additionalPasswords[index];
           }
         }
+      } else if (fieldType == 'website') {
+        controller.text = account.website;
+        // Aggiunge un listener per aggiornare in tempo reale l'icona (in caso l'utente modifichi il sito dinamico)
+        controller.addListener(() {
+          setState(() {});
+        });
       }
       additionalFields.add({
         'label': Text(field),
@@ -205,16 +227,12 @@ class AccountFormState extends State<AccountForm> {
     _dataController.dispose();
     for (var entry in additionalFields) {
       final controller = entry['controller'];
-      if (controller is TextEditingController) {
-        controller.dispose();
-      }
+      if (controller is TextEditingController) controller.dispose();
     }
     super.dispose();
   }
 
-  /// ---------------- Funzioni di Supporto ----------------
-
-  /// Mostra un popup per selezionare uno degli account registrati.
+  /// Mostra un popup per selezionare un account registrato.
   void _showAccountSelection(TextEditingController controller) {
     final accounts = _accountController.accounts;
     if (accounts.isEmpty) {
@@ -266,11 +284,10 @@ class AccountFormState extends State<AccountForm> {
     });
   }
 
-  /// ---------------- Salvataggio ----------------
-  ///
-  /// Salva l’account creando:
-  /// • Il valore di password principale dal campo default
-  /// • Una lista di password extra prelevata dai campi aggiuntivi di tipo "password".
+  /// Salvataggio:
+  /// • La password principale viene presa dal campo default.
+  /// • Le password extra vengono raccolte dai campi aggiuntivi di tipo "password".
+  /// • Il sito web viene determinato tramite getWebsiteUrl() (che gestisce anche i campi dinamici).
   void saveAccount() {
     String defaultPassword = _passwordController.text.trim();
     List<String> extraPasswords = [];
@@ -293,7 +310,7 @@ class AccountFormState extends State<AccountForm> {
       username: _loginController.text.trim(),
       password: defaultPassword,
       additionalPasswords: extraPasswords,
-      website: _websiteController.text.trim(),
+      website: getWebsiteUrl(),
       iconMode: _iconSelectionMode,
       symbolIcon: _selectedSymbolIcon,
       colorIcon: _selectedColorIcon ?? _selectedSymbolColor,
@@ -363,15 +380,31 @@ class AccountFormState extends State<AccountForm> {
     );
   }
 
-  /// ---------------- Creazione Campi Aggiuntivi ----------------
-  ///
-  /// Il bottone "ADD ANOTHER FIELD" permette di aggiungere nuovi campi.
-  /// Se l'opzione scelta è "Password", viene creato un campo extra di tipo password.
+  /// Bottone per aggiungere un nuovo campo dinamico.
+  /// Se l'opzione scelta è "Website", viene creato un campo di tipo "website"
+  /// che funziona come quello standard.
   Widget _buildAddFieldButton() {
     return PopupMenuButton<String>(
       onSelected: (String selectedOption) {
         setState(() {
-          if (selectedOption == 'Password') {
+          if (selectedOption == 'Website') {
+            TextEditingController newWebsiteController =
+                TextEditingController();
+            newWebsiteController.addListener(() {
+              // Aggiorna in tempo reale il logo
+              setState(() {});
+            });
+            int count =
+                enabledFields.where((e) => e.startsWith(selectedOption)).length;
+            String newFieldLabel =
+                count == 0 ? selectedOption : "$selectedOption (${count + 1})";
+            enabledFields.add(newFieldLabel);
+            additionalFields.add({
+              'label': Text(newFieldLabel),
+              'type': 'website',
+              'controller': newWebsiteController,
+            });
+          } else if (selectedOption == 'Password') {
             TextEditingController newPasswordController =
                 TextEditingController();
             int count =
@@ -430,7 +463,7 @@ class AccountFormState extends State<AccountForm> {
     );
   }
 
-  /// Costruisce il widget per un campo aggiuntivo in base alla configurazione corrente.
+  /// Costruisce il widget per un campo aggiuntivo in base alla sua configurazione.
   Widget _buildAdditionalField(Map<String, dynamic> entry) {
     if (entry['type'] == 'password') {
       bool visible = entry['passwordVisible'] ?? false;
@@ -459,7 +492,7 @@ class AccountFormState extends State<AccountForm> {
         },
       );
     } else {
-      // Per campi di tipo "text":
+      // Per campi di tipo "text" o "website"
       return Row(
         children: [
           Expanded(
@@ -565,7 +598,7 @@ class AccountFormState extends State<AccountForm> {
           break;
       }
     }
-    // Per campi aggiuntivi (pressione: quelli che contengono parentesi nel nome)
+    // Per i campi aggiuntivi (ad esempio "Password (2)" o "Website" dinamico)
     Map<String, dynamic>? entry;
     try {
       entry = additionalFields.firstWhere(
@@ -580,9 +613,9 @@ class AccountFormState extends State<AccountForm> {
     return const SizedBox();
   }
 
-  /// Costruisce la lista di tutti i campi del form.
+  /// Costruisce la lista di tutti i campi da visualizzare (escluso "Title", già gestito separatamente).
   List<Widget> _buildAllFields() {
-    return enabledFields.map((field) {
+    return enabledFields.where((field) => field != 'Title').map((field) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 16.0),
         child: _buildField(field),
@@ -596,7 +629,45 @@ class AccountFormState extends State<AccountForm> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [..._buildAllFields(), _buildAddFieldButton()],
+        children: [
+          // Row: Campo "Title" a sinistra, IconSelector a destra.
+          Row(
+            children: [
+              Expanded(child: _buildField('Title')),
+              const SizedBox(width: 16),
+              IconSelector(
+                iconSelectionMode: _iconSelectionMode,
+                websiteUrl: getWebsiteUrl(),
+                selectedSymbolIcon: _selectedSymbolIcon,
+                selectedSymbolColor: _selectedSymbolColor,
+                selectedColorIcon: _selectedColorIcon,
+                onModeSelected: (mode) {
+                  setState(() {
+                    _iconSelectionMode = mode;
+                  });
+                },
+                onSymbolSelected: (icon, color) {
+                  setState(() {
+                    _selectedSymbolIcon = icon;
+                    _selectedSymbolColor = color;
+                    _selectedColorIcon = null;
+                  });
+                },
+                onColorSelected: (color) {
+                  setState(() {
+                    _selectedColorIcon = color;
+                    _selectedSymbolIcon = null;
+                    _selectedSymbolColor = null;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Gli altri campi (tranne Title)
+          ..._buildAllFields(),
+          _buildAddFieldButton(),
+        ],
       ),
     );
   }
