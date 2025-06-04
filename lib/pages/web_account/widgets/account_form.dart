@@ -8,7 +8,7 @@ import '../../../helpers/password_strength_helper.dart';
 import '../../../widgets/password_generator_dialog.dart';
 import 'password_field.dart';
 import 'icon_selector.dart';
-import '../../qr_scanner_page.dart'; // Assicurati che il percorso sia corretto
+import '../../qr_scanner_page.dart';
 
 class AccountForm extends StatefulWidget {
   final Account? editingAccount;
@@ -42,17 +42,19 @@ class AccountFormState extends State<AccountForm> {
   Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
 
-  // Campi standard e impostazioni per la UI
+  // Campi standard (non rimovibili) e abilitati
   final List<String> nonRemovableFields = ['Title'];
   final List<String> standardFields = [
     'Title',
     'Login',
     'Password',
     'Website',
-    'One-time password (2FA)',
+    'One-time password (2FA)', // versione inglese
+    'Password monouso (2FA)', // versione italiana alternativa
     'Notes',
   ];
-  // Di default, includiamo il campo OTP
+
+  // Di default includiamo la versione OTP in inglese
   List<String> enabledFields = [
     'Title',
     'Login',
@@ -62,10 +64,10 @@ class AccountFormState extends State<AccountForm> {
     'Notes',
   ];
 
-  // Per i campi aggiuntivi dinamici
+  // Campi aggiuntivi dinamici
   List<Map<String, dynamic>> additionalFields = [];
 
-  // Opzioni per i nuovi campi
+  // Opzioni del menu "ADD ANOTHER FIELD"
   static const List<String> fieldOptions = [
     'Testo',
     'Numero',
@@ -81,18 +83,23 @@ class AccountFormState extends State<AccountForm> {
     'Applicazione',
   ];
 
-  // Estrae il sito web dal campo standard o da uno dinamico di tipo 'website'
-  String getWebsiteUrl() {
-    if (enabledFields.contains('Website')) {
-      return _websiteController.text;
-    } else {
-      for (var entry in additionalFields) {
-        if (entry['type'] == 'website') {
-          return (entry['controller'] as TextEditingController).text;
-        }
-      }
-    }
-    return "";
+  // Variabili per il TOTP/OTP
+  String? _otpSecret;
+  // Il countdown (OTP valido per 30 secondi)
+  int _remainingSeconds = 30;
+  late Timer _countdownTimer;
+
+  // Rigenera il codice OTP utilizzando _otpSecret
+  void _updateOTP() {
+    if (_otpSecret == null) return;
+    final otpCode = OTP.generateTOTPCodeString(
+      _otpSecret!,
+      DateTime.now().millisecondsSinceEpoch,
+      length: 6,
+    );
+    setState(() {
+      _otpController.text = otpCode;
+    });
   }
 
   void _onPasswordChanged() {
@@ -114,29 +121,67 @@ class AccountFormState extends State<AccountForm> {
     }
   }
 
-  // Funzionalità OTP basate su TOTP
-  String? _otpSecret;
-  Timer? _otpTimer;
+  // Quando si modifica un account, carichiamo anche l'otpSecret se esistente
+  void setEditingAccount(Account? account) {
+    if (account != null) {
+      _titleController.text = account.accountName;
+      _loginController.text = account.username;
+      _passwordController.text = account.password;
+      _websiteController.text = account.website;
+      _iconSelectionMode = account.iconMode;
+      _selectedSymbolIcon = account.symbolIcon;
+      _selectedSymbolColor = account.colorIcon;
+      _selectedColorIcon = account.colorIcon;
+      enabledFields = List<String>.from(account.enabledFields);
 
-  void _startOTPTimer() {
-    _otpTimer?.cancel();
-    if (_otpSecret == null) return;
-    _updateOTP();
-    _otpTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      _updateOTP();
-    });
-  }
+      // Se l'account possiede otpSecret, lo usiamo e rigeneriamo il codice OTP
+      if (account.otpSecret != null && account.otpSecret!.isNotEmpty) {
+        _otpSecret = account.otpSecret;
+        _updateOTP();
+      }
 
-  void _updateOTP() {
-    if (_otpSecret == null) return;
-    final otpCode = OTP.generateTOTPCodeString(
-      _otpSecret!,
-      DateTime.now().millisecondsSinceEpoch,
-      length: 6,
-    );
-    setState(() {
-      _otpController.text = otpCode;
-    });
+      additionalFields = [];
+      for (var field in enabledFields) {
+        if (standardFields.contains(field)) continue;
+        TextEditingController controller = TextEditingController();
+        String fieldType =
+            field.toLowerCase().contains('password')
+                ? 'password'
+                : (field.toLowerCase().contains('website')
+                    ? 'website'
+                    : 'text');
+        // Se il campo rappresenta un OTP (versione inglese o italiana)
+        if (field == 'One-time password (2FA)' ||
+            field == 'Password monouso (2FA)') {
+          fieldType = 'otp';
+          controller = _otpController;
+        } else if (fieldType == 'password') {
+          final RegExp reg = RegExp(r'Password\s*\((\d+)\)');
+          final Match? match = reg.firstMatch(field);
+          if (match != null) {
+            int n = int.parse(match.group(1)!);
+            int index = n - 2; // Primo extra → indice 0
+            if (index >= 0 && index < account.additionalPasswords.length) {
+              controller.text = account.additionalPasswords[index];
+            }
+          }
+        } else if (fieldType == 'website') {
+          controller.text = account.website;
+          controller.addListener(() {
+            setState(() {});
+          });
+        }
+        additionalFields.add({
+          'label': Text(field),
+          'type': fieldType,
+          'controller': controller,
+          'passwordVisible': false,
+          'passwordStrength': 0.0,
+          'passwordStrengthLabel': '',
+          'passwordCrackTime': '',
+        });
+      }
+    }
   }
 
   @override
@@ -145,55 +190,20 @@ class AccountFormState extends State<AccountForm> {
     _websiteController.addListener(_onWebsiteChanged);
     _passwordController.addListener(_onPasswordChanged);
     if (widget.editingAccount != null) {
-      _initializeWithAccount(widget.editingAccount!);
+      setEditingAccount(widget.editingAccount);
     }
-  }
-
-  void _initializeWithAccount(Account account) {
-    _titleController.text = account.accountName;
-    _loginController.text = account.username;
-    _passwordController.text = account.password;
-    _websiteController.text = account.website;
-    _iconSelectionMode = account.iconMode;
-    _selectedSymbolIcon = account.symbolIcon;
-    _selectedSymbolColor = account.colorIcon;
-    _selectedColorIcon = account.colorIcon;
-    enabledFields = List<String>.from(account.enabledFields);
-
-    additionalFields = [];
-    for (var field in enabledFields) {
-      if (standardFields.contains(field)) continue;
-      TextEditingController controller = TextEditingController();
-      String fieldType =
-          field.toLowerCase().contains('password')
-              ? 'password'
-              : (field.toLowerCase().contains('website') ? 'website' : 'text');
-      if (fieldType == 'password') {
-        final RegExp reg = RegExp(r'Password\s*\((\d+)\)');
-        final Match? match = reg.firstMatch(field);
-        if (match != null) {
-          int n = int.parse(match.group(1)!);
-          int index = n - 2; // Primo extra → indice 0
-          if (index >= 0 && index < account.additionalPasswords.length) {
-            controller.text = account.additionalPasswords[index];
-          }
+    // Avvia un timer che ogni secondo aggiorna il countdown e, se il countdown arriva a 30, aggiorna l'OTP.
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final secondsSinceEpoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      int secondsPassed = secondsSinceEpoch % 30;
+      setState(() {
+        _remainingSeconds = 30 - secondsPassed;
+        if (_remainingSeconds == 30) {
+          // Quando il countdown si resetta, aggiornare l'OTP
+          _updateOTP();
         }
-      } else if (fieldType == 'website') {
-        controller.text = account.website;
-        controller.addListener(() {
-          setState(() {});
-        });
-      }
-      additionalFields.add({
-        'label': Text(field),
-        'type': fieldType,
-        'controller': controller,
-        'passwordVisible': false,
-        'passwordStrength': 0.0,
-        'passwordStrengthLabel': '',
-        'passwordCrackTime': '',
       });
-    }
+    });
   }
 
   @override
@@ -210,11 +220,58 @@ class AccountFormState extends State<AccountForm> {
       final controller = entry['controller'];
       if (controller is TextEditingController) controller.dispose();
     }
-    _otpTimer?.cancel();
+    _countdownTimer.cancel();
     super.dispose();
   }
 
-  // Incapsula un widget campo e aggiunge, se possibile, un pulsante di eliminazione.
+  // Salva l'account, includendo il segreto OTP (_otpSecret)
+  void saveAccount() {
+    String defaultPassword = _passwordController.text.trim();
+    List<String> extraPasswords = [];
+    for (var entry in additionalFields) {
+      if (entry['type'] == 'password') {
+        String txt = entry['controller'].text.trim();
+        if (txt.isNotEmpty) extraPasswords.add(txt);
+      }
+    }
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
+      return;
+    }
+    final accountToSave = Account(
+      accountName: _titleController.text.trim(),
+      username: _loginController.text.trim(),
+      password: defaultPassword,
+      additionalPasswords: extraPasswords,
+      website: _websiteController.text,
+      iconMode: _iconSelectionMode,
+      symbolIcon: _selectedSymbolIcon,
+      colorIcon: _selectedColorIcon ?? _selectedSymbolColor,
+      customIconPath: null,
+      isFavorite: widget.editingAccount?.isFavorite ?? false,
+      enabledFields: enabledFields,
+      otpSecret: _otpSecret, // Salvo il segreto OTP
+    );
+    try {
+      if (widget.editingAccount != null) {
+        final updatedAccount = accountToSave.copyWith(
+          id: widget.editingAccount!.id,
+        );
+        _accountController.updateAccount(updatedAccount);
+      } else {
+        _accountController.addAccount(accountToSave);
+      }
+      Navigator.of(context).pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving account: ${e.toString()}')),
+      );
+    }
+  }
+
+  // Widget helper per incapsulare un campo con pulsante di eliminazione (se possibile)
   Widget _wrapField(String field, Widget child) {
     if (nonRemovableFields.contains(field)) return child;
     return Row(
@@ -291,51 +348,6 @@ class AccountFormState extends State<AccountForm> {
     });
   }
 
-  void saveAccount() {
-    String defaultPassword = _passwordController.text.trim();
-    List<String> extraPasswords = [];
-    for (var entry in additionalFields) {
-      if (entry['type'] == 'password') {
-        String txt = entry['controller'].text.trim();
-        if (txt.isNotEmpty) extraPasswords.add(txt);
-      }
-    }
-    if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
-      return;
-    }
-    final accountToSave = Account(
-      accountName: _titleController.text.trim(),
-      username: _loginController.text.trim(),
-      password: defaultPassword,
-      additionalPasswords: extraPasswords,
-      website: getWebsiteUrl(),
-      iconMode: _iconSelectionMode,
-      symbolIcon: _selectedSymbolIcon,
-      colorIcon: _selectedColorIcon ?? _selectedSymbolColor,
-      customIconPath: null,
-      isFavorite: widget.editingAccount?.isFavorite ?? false,
-      enabledFields: enabledFields,
-    );
-    try {
-      if (widget.editingAccount != null) {
-        final updatedAccount = accountToSave.copyWith(
-          id: widget.editingAccount!.id,
-        );
-        _accountController.updateAccount(updatedAccount);
-      } else {
-        _accountController.addAccount(accountToSave);
-      }
-      Navigator.of(context).pop();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving account: ${e.toString()}')),
-      );
-    }
-  }
-
   void _openPasswordGenerator() {
     showDialog(
       context: context,
@@ -354,7 +366,6 @@ class AccountFormState extends State<AccountForm> {
     );
   }
 
-  // Apertura del generatore per campi password aggiuntivi.
   void _openPasswordGeneratorForField(Map<String, dynamic> entry) {
     showDialog(
       context: context,
@@ -417,6 +428,18 @@ class AccountFormState extends State<AccountForm> {
               'passwordStrengthLabel': '',
               'passwordCrackTime': '',
             });
+          } else if (selectedOption == 'Password monouso (2FA)') {
+            // Gestione specifica per un campo OTP aggiuntivo
+            int count =
+                enabledFields.where((e) => e.startsWith(selectedOption)).length;
+            String newFieldLabel =
+                count == 0 ? selectedOption : "$selectedOption (${count + 1})";
+            enabledFields.add(newFieldLabel);
+            additionalFields.add({
+              'label': Text(newFieldLabel),
+              'type': 'otp',
+              'controller': TextEditingController(),
+            });
           } else {
             int count =
                 enabledFields
@@ -460,7 +483,48 @@ class AccountFormState extends State<AccountForm> {
   }
 
   Widget _buildAdditionalField(Map<String, dynamic> entry) {
-    if (entry['type'] == 'password') {
+    if (entry['type'] == 'otp') {
+      // Campo OTP aggiuntivo con icona QR e countdown
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: entry['controller'],
+                  decoration: InputDecoration(
+                    labelText: (entry['label'] as Text).data,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.qr_code_scanner),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const QRScannerPage()),
+                  );
+                  if (result != null) {
+                    setState(() {
+                      entry['controller'].text = result;
+                      _otpSecret = result;
+                      _updateOTP();
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Expires in: $_remainingSeconds sec",
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      );
+    } else if (entry['type'] == 'password') {
       bool visible = entry['passwordVisible'] ?? false;
       double strength = entry['passwordStrength'] ?? 0.0;
       String strengthLabel = entry['passwordStrengthLabel'] ?? '';
@@ -512,45 +576,56 @@ class AccountFormState extends State<AccountForm> {
     }
   }
 
-  // Funzione che costruisce ogni campo del form.
   Widget _buildField(String field) {
     if (standardFields.contains(field)) {
-      // Gestione speciale per il campo OTP
       if (field == 'One-time password (2FA)' ||
           field == 'Password monouso (2FA)') {
+        // Campo OTP standard con icona QR e countdown
         return _wrapField(
           field,
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _otpController,
-                  decoration: InputDecoration(
-                    labelText: field,
-                    border: const OutlineInputBorder(),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _otpController,
+                      decoration: InputDecoration(
+                        labelText: field,
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
                   ),
-                ),
+                  IconButton(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const QRScannerPage(),
+                        ),
+                      );
+                      if (result != null) {
+                        setState(() {
+                          _otpSecret = result;
+                          _otpController.text = result;
+                          _updateOTP();
+                        });
+                      }
+                    },
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.qr_code_scanner),
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const QRScannerPage()),
-                  );
-                  if (result != null) {
-                    setState(() {
-                      _otpSecret = result;
-                      _startOTPTimer();
-                    });
-                  }
-                },
+              const SizedBox(height: 4),
+              Text(
+                "Expires in: $_remainingSeconds sec",
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),
         );
       }
-      // Gestione degli altri campi standard
       switch (field) {
         case 'Title':
           return TextFormField(
@@ -614,10 +689,9 @@ class AccountFormState extends State<AccountForm> {
             ),
           );
         default:
-          break;
+          return const SizedBox();
       }
     }
-    // Se il campo non è standard lo cerchiamo tra i campi aggiuntivi.
     Map<String, dynamic>? entry;
     try {
       entry = additionalFields.firstWhere(
@@ -648,14 +722,14 @@ class AccountFormState extends State<AccountForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Riga in cui viene mostrato il campo 'Title' ed il selettore dell'icona.
+          // Riga contenente il campo "Title" e il selettore delle icone
           Row(
             children: [
               Expanded(child: _buildField('Title')),
               const SizedBox(width: 16),
               IconSelector(
                 iconSelectionMode: _iconSelectionMode,
-                websiteUrl: getWebsiteUrl(),
+                websiteUrl: _websiteController.text,
                 selectedSymbolIcon: _selectedSymbolIcon,
                 selectedSymbolColor: _selectedSymbolColor,
                 selectedColorIcon: _selectedColorIcon,
@@ -682,7 +756,6 @@ class AccountFormState extends State<AccountForm> {
             ],
           ),
           const SizedBox(height: 16),
-          // Altri campi
           ..._buildAllFields(),
           _buildAddFieldButton(),
         ],
