@@ -28,7 +28,7 @@ class AccountFormState extends State<AccountForm> {
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
-  // Controllers per campi aggiuntivi (es. Data, scadenza)
+  // Controllers per campi aggiuntivi (es. Scadenza, Data)
   final TextEditingController _scadenzaController = TextEditingController();
   final TextEditingController _dataController = TextEditingController();
 
@@ -43,18 +43,21 @@ class AccountFormState extends State<AccountForm> {
   Color? _selectedSymbolColor;
   Color? _selectedColorIcon;
 
-  // Campi standard (non rimovibili) e predefiniti
+  // Etichette non rimovibili
   final List<String> nonRemovableFields = ['Title'];
+
+  // Tutti i campi "standard" di base
   final List<String> standardFields = [
     'Title',
     'Login',
     'Password',
     'Website',
-    'One-time password (2FA)', // versione inglese
-    'Password monouso (2FA)', // versione italiana
+    'One-time password (2FA)',
+    'Password monouso (2FA)',
     'Notes',
   ];
 
+  // Etichette visibili (ordine + inclusioni dinamiche)
   List<String> enabledFields = [
     'Title',
     'Login',
@@ -64,11 +67,10 @@ class AccountFormState extends State<AccountForm> {
     'Notes',
   ];
 
-  // Lista dei campi aggiuntivi inseriti manualmente.
-  // Ogni voce è una Map con chiavi: 'label', 'type' e 'controller'
+  // Rappresentazione interna dei campi extra
   List<Map<String, dynamic>> additionalFields = [];
 
-  // Opzioni del menu "ADD ANOTHER FIELD"
+  // Opzioni menu "ADD ANOTHER FIELD"
   static const List<String> fieldOptions = [
     'Testo',
     'Numero',
@@ -84,44 +86,10 @@ class AccountFormState extends State<AccountForm> {
     'Applicazione',
   ];
 
-  // Variabili per il TOTP/OTP
+  // Variabili per OTP/TOTP
   String? _otpSecret;
   int _remainingSeconds = 30;
   late Timer _countdownTimer;
-
-  // Aggiorna il codice OTP usando _otpSecret
-  void _updateOTP() {
-    if (_otpSecret == null) return;
-    final otpCode = OTP.generateTOTPCodeString(
-      _otpSecret!,
-      DateTime.now().millisecondsSinceEpoch,
-      length: 6,
-    );
-    setState(() {
-      _otpController.text = otpCode;
-    });
-  }
-
-  // Forza e tempo di crack per la password principale
-  void _onPasswordChanged() {
-    final password = _passwordController.text;
-    setState(() {
-      _passwordStrength = PasswordStrengthHelper.calculatePasswordStrength(
-        password,
-      );
-      _passwordStrengthLabel = PasswordStrengthHelper.getStrengthLabel(
-        _passwordStrength,
-      );
-      _passwordCrackTime = PasswordStrengthHelper.estimateCrackTime(password);
-    });
-  }
-
-  // Ricarica l'icona quando cambia il sito
-  void _onWebsiteChanged() {
-    if (_iconSelectionMode == 'Website Icon') {
-      setState(() {});
-    }
-  }
 
   @override
   void initState() {
@@ -129,7 +97,7 @@ class AccountFormState extends State<AccountForm> {
     _websiteController.addListener(_onWebsiteChanged);
     _passwordController.addListener(_onPasswordChanged);
 
-    // Se sto modificando un account esistente, lo ripristino
+    // Se stiamo modificando un account esistente, lo ripristiniamo
     if (widget.editingAccount != null) {
       setEditingAccount(widget.editingAccount);
     }
@@ -165,12 +133,43 @@ class AccountFormState extends State<AccountForm> {
     super.dispose();
   }
 
-  /// Ripristina interamente l'account in modifica,
-  /// compresi i campi password aggiuntivi e quelli text custom.
+  // Aggiorna il codice OTP basato su _otpSecret
+  void _updateOTP() {
+    if (_otpSecret == null) return;
+    final code = OTP.generateTOTPCodeString(
+      _otpSecret!,
+      DateTime.now().millisecondsSinceEpoch,
+      length: 6,
+    );
+    setState(() {
+      _otpController.text = code;
+    });
+  }
+
+  // Ricalcola forza e crack‐time per la password principale
+  void _onPasswordChanged() {
+    final pwd = _passwordController.text;
+    setState(() {
+      _passwordStrength = PasswordStrengthHelper.calculatePasswordStrength(pwd);
+      _passwordStrengthLabel = PasswordStrengthHelper.getStrengthLabel(
+        _passwordStrength,
+      );
+      _passwordCrackTime = PasswordStrengthHelper.estimateCrackTime(pwd);
+    });
+  }
+
+  // Ricarica l'icona se cambiamo il sito (modalità Website Icon)
+  void _onWebsiteChanged() {
+    if (_iconSelectionMode == 'Website Icon') {
+      setState(() {});
+    }
+  }
+
+  /// Ripristina l'account in modifica, evitando di duplicare le etichette
   void setEditingAccount(Account? account) {
     if (account == null) return;
 
-    // 1) Reset campi abilitati e lista aggiuntivi
+    // 1) Prendo esattamente le label salvate (ordine + duplicati già gestiti)
     enabledFields = List<String>.from(account.enabledFields);
     additionalFields.clear();
 
@@ -190,58 +189,67 @@ class AccountFormState extends State<AccountForm> {
       _updateOTP();
     }
 
-    // 4) Ripristino password extra da additionalPasswords
-    for (var pwd in account.additionalPasswords) {
-      const base = 'Password';
-      final count = enabledFields.where((e) => e.startsWith(base)).length;
-      final label = count == 0 ? base : '$base (${count + 1})';
+    // 4) Costruisco i campi extra basati su enabledFields
+    const standard = <String>{
+      'Title',
+      'Login',
+      'Password',
+      'Website',
+      'One-time password (2FA)',
+      'Password monouso (2FA)',
+      'Notes',
+    };
+    int pwdIdx = 0;
 
-      enabledFields.add(label);
-      final ctrl = TextEditingController(text: pwd);
-      additionalFields.add({
-        'label': Text(label),
-        'type': 'password',
-        'controller': ctrl,
-        'passwordVisible': false,
-        'passwordStrength': PasswordStrengthHelper.calculatePasswordStrength(
-          pwd,
-        ),
-        'passwordStrengthLabel': PasswordStrengthHelper.getStrengthLabel(
-          PasswordStrengthHelper.calculatePasswordStrength(pwd),
-        ),
-        'passwordCrackTime': PasswordStrengthHelper.estimateCrackTime(pwd),
-      });
-    }
+    for (var label in enabledFields) {
+      // Salto i campi standard
+      if (standard.contains(label)) continue;
 
-    // 5) Ripristino campi text custom da extraFields
-    if (account.extraFields != null) {
-      account.extraFields!.forEach((label, value) {
-        // Notes standard
-        if (label == 'Notes' && enabledFields.contains(label)) {
-          _notesController.text = value;
-          return;
-        }
-        // Field custom
-        if (!enabledFields.contains(label)) {
-          enabledFields.add(label);
-        }
-        final ctrl = TextEditingController(text: value);
+      // Se la label inizia per "Password", è password extra
+      if (label.startsWith('Password')) {
+        final pwd =
+            (pwdIdx < account.additionalPasswords.length)
+                ? account.additionalPasswords[pwdIdx++]
+                : '';
+        final ctrl = TextEditingController(text: pwd);
         additionalFields.add({
           'label': Text(label),
-          'type': 'text',
+          'type': 'password',
           'controller': ctrl,
+          'passwordVisible': false,
+          'passwordStrength': PasswordStrengthHelper.calculatePasswordStrength(
+            pwd,
+          ),
+          'passwordStrengthLabel': PasswordStrengthHelper.getStrengthLabel(
+            PasswordStrengthHelper.calculatePasswordStrength(pwd),
+          ),
+          'passwordCrackTime': PasswordStrengthHelper.estimateCrackTime(pwd),
         });
-      });
+      }
+      // Altri campi custom (text, email, note personalizzate)
+      else {
+        final textValue = account.extraFields?[label] ?? '';
+        if (label == 'Notes') {
+          _notesController.text = textValue;
+        } else {
+          final ctrl = TextEditingController(text: textValue);
+          additionalFields.add({
+            'label': Text(label),
+            'type': 'text',
+            'controller': ctrl,
+          });
+        }
+      }
     }
   }
 
   /// Salva l'account (nuovo o modificato) e torna indietro
   void saveAccount() {
     final defaultPwd = _passwordController.text.trim();
-
-    // Raccogli password extra
     final List<String> extraPwds = [];
     final Map<String, String> extraData = {};
+
+    // Raccolgo i campi extra
     for (var entry in additionalFields) {
       final type = entry['type'] as String;
       final ctrl = entry['controller'] as TextEditingController;
@@ -249,18 +257,18 @@ class AccountFormState extends State<AccountForm> {
       if (type == 'password') {
         if (text.isNotEmpty) extraPwds.add(text);
       } else if (type == 'otp') {
-        // gestito via _otpSecret
+        // gestito via _otpSecret/_otpController
       } else {
         final label = (entry['label'] as Text).data ?? '';
         if (text.isNotEmpty) extraData[label] = text;
       }
     }
 
-    // Aggiungo Notes se non vuoto
+    // Aggiungo le Notes standard se non vuote
     final notes = _notesController.text.trim();
     if (notes.isNotEmpty) extraData['Notes'] = notes;
 
-    // Validazione titolo
+    // Validazione minima
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -268,7 +276,6 @@ class AccountFormState extends State<AccountForm> {
       return;
     }
 
-    // Costruisco Account da salvare
     final toSave = Account(
       accountName: _titleController.text.trim(),
       username: _loginController.text.trim(),
@@ -287,11 +294,9 @@ class AccountFormState extends State<AccountForm> {
 
     try {
       if (widget.editingAccount != null) {
-        // update
         final updated = toSave.copyWith(id: widget.editingAccount!.id);
         _accountController.updateAccount(updated);
       } else {
-        // add new
         _accountController.addAccount(toSave);
       }
       Navigator.of(context).pop();
@@ -302,7 +307,7 @@ class AccountFormState extends State<AccountForm> {
     }
   }
 
-  // Incapsula un campo con pulsante di rimozione
+  // Incapsula un campo con il pulsante di rimozione (se consentito)
   Widget _wrapField(String field, Widget child) {
     if (nonRemovableFields.contains(field)) return child;
     return Row(
@@ -329,7 +334,7 @@ class AccountFormState extends State<AccountForm> {
     });
   }
 
-  // Menu per selezionare username da altri account
+  // Mostra la lista di account per selezionare uno username
   void _showAccountSelection(TextEditingController controller) {
     final all = _accountController.accounts;
     if (all.isEmpty) {
@@ -340,7 +345,7 @@ class AccountFormState extends State<AccountForm> {
     }
     final buttonBox = context.findRenderObject() as RenderBox;
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final pos = RelativeRect.fromRect(
+    final position = RelativeRect.fromRect(
       Rect.fromPoints(
         buttonBox.localToGlobal(Offset.zero, ancestor: overlay),
         buttonBox.localToGlobal(
@@ -352,7 +357,7 @@ class AccountFormState extends State<AccountForm> {
     );
     showMenu<Account>(
       context: context,
-      position: pos,
+      position: position,
       items:
           all.map((acct) {
             return PopupMenuItem<Account>(
@@ -382,14 +387,14 @@ class AccountFormState extends State<AccountForm> {
             initialLength: 12,
             initialType: 'Random',
             initialPassword: '',
-            onPasswordGenerated: (pwd, len, type) {
+            onPasswordGenerated: (pwd, _, __) {
               setState(() => _passwordController.text = pwd);
             },
           ),
     );
   }
 
-  // Generatore per un campo password qualunque
+  // Generatore per un campo password extra
   void _openPasswordGeneratorForField(Map<String, dynamic> entry) {
     showDialog(
       context: context,
@@ -398,7 +403,7 @@ class AccountFormState extends State<AccountForm> {
             initialLength: 12,
             initialType: 'Random',
             initialPassword: entry['controller'].text,
-            onPasswordGenerated: (pwd, len, type) {
+            onPasswordGenerated: (pwd, _, __) {
               setState(() {
                 entry['controller'].text = pwd;
                 final str = PasswordStrengthHelper.calculatePasswordStrength(
@@ -420,53 +425,43 @@ class AccountFormState extends State<AccountForm> {
     return PopupMenuButton<String>(
       onSelected: (opt) {
         setState(() {
-          // gestione di ogni opzione analogamente all'originale
-          if (opt == 'Website') {
-            final ctrl = TextEditingController();
-            final count = enabledFields.where((e) => e.startsWith(opt)).length;
-            final label = count == 0 ? opt : '$opt (${count + 1})';
-            enabledFields.add(label);
-            additionalFields.add({
-              'label': Text(label),
-              'type': 'website',
-              'controller': ctrl,
-            });
-          } else if (opt == 'Password') {
-            final ctrl = TextEditingController();
-            final count = enabledFields.where((e) => e.startsWith(opt)).length;
-            final label = count == 0 ? opt : '$opt (${count + 1})';
-            enabledFields.add(label);
-            additionalFields.add({
-              'label': Text(label),
-              'type': 'password',
-              'controller': ctrl,
-              'passwordVisible': false,
-              'passwordStrength': 0.0,
-              'passwordStrengthLabel': '',
-              'passwordCrackTime': '',
-            });
-          } else if (opt == 'Password monouso (2FA)') {
-            final count = enabledFields.where((e) => e.startsWith(opt)).length;
-            final label = count == 0 ? opt : '$opt (${count + 1})';
-            enabledFields.add(label);
-            additionalFields.add({
-              'label': Text(label),
-              'type': 'otp',
-              'controller': TextEditingController(),
-            });
-          } else {
-            final count =
-                enabledFields
-                    .where((e) => e == opt || e.startsWith("$opt ("))
-                    .length;
-            final label = count > 0 ? "$opt (${count + 1})" : opt;
-            enabledFields.add(label);
-            final ctrl = TextEditingController();
-            additionalFields.add({
-              'label': Text(label),
-              'type': 'text',
-              'controller': ctrl,
-            });
+          int count = enabledFields.where((e) => e.startsWith(opt)).length;
+          final label = count == 0 ? opt : '$opt (${count + 1})';
+
+          enabledFields.add(label);
+
+          switch (opt) {
+            case 'Website':
+              additionalFields.add({
+                'label': Text(label),
+                'type': 'website',
+                'controller': TextEditingController(),
+              });
+              break;
+            case 'Password':
+              additionalFields.add({
+                'label': Text(label),
+                'type': 'password',
+                'controller': TextEditingController(),
+                'passwordVisible': false,
+                'passwordStrength': 0.0,
+                'passwordStrengthLabel': '',
+                'passwordCrackTime': '',
+              });
+              break;
+            case 'Password monouso (2FA)':
+              additionalFields.add({
+                'label': Text(label),
+                'type': 'otp',
+                'controller': TextEditingController(),
+              });
+              break;
+            default:
+              additionalFields.add({
+                'label': Text(label),
+                'type': 'text',
+                'controller': TextEditingController(),
+              });
           }
         });
       },
@@ -497,6 +492,7 @@ class AccountFormState extends State<AccountForm> {
   // Costruisce ciascun campo extra in base al tipo
   Widget _buildAdditionalField(Map<String, dynamic> entry) {
     final type = entry['type'] as String;
+
     if (type == 'otp') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,7 +590,7 @@ class AccountFormState extends State<AccountForm> {
     }
   }
 
-  // Costruisce un campo standard o cerca in additionalFields
+  // Costruisce un campo standard o lo ricerca in additionalFields
   Widget _buildField(String field) {
     if (standardFields.contains(field)) {
       if (field == 'One-time password (2FA)' ||
@@ -711,7 +707,7 @@ class AccountFormState extends State<AccountForm> {
       }
     }
 
-    // Se non è campo standard, cerco in additionalFields
+    // Se non è campo standard, lo cerco in additionalFields
     final entry = additionalFields.firstWhere(
       (e) => (e['label'] as Text).data == field,
       orElse: () => {},
@@ -722,6 +718,7 @@ class AccountFormState extends State<AccountForm> {
     return const SizedBox();
   }
 
+  // Costruisce la lista di tutti i campi (escludendo 'Title' che è già in header)
   List<Widget> _buildAllFields() {
     return enabledFields
         .where((f) => f != 'Title')
@@ -741,7 +738,7 @@ class AccountFormState extends State<AccountForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Riga contenente Title + IconSelector
+          // Riga superiore: Title + IconSelector
           Row(
             children: [
               Expanded(child: _buildField('Title')),
@@ -775,7 +772,9 @@ class AccountFormState extends State<AccountForm> {
             ],
           ),
           const SizedBox(height: 16),
+          // Tutti gli altri campi
           ..._buildAllFields(),
+          // Pulsante per aggiungere nuovi campi
           _buildAddFieldButton(),
         ],
       ),
