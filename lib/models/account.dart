@@ -16,11 +16,14 @@ class Account {
   final Color? colorIcon;
   final String? customIconPath;
 
-  // Configurazione dei campi (in questo caso usata solo per la UI)
+  // Configurazione dei campi (usata esclusivamente per la UI)
   final List<String> enabledFields;
 
-  // NUOVO CAMPO: Segreto per il codice OTP
+  // Nuovo campo: Segreto per il codice OTP
   final String? otpSecret;
+
+  // Nuovo campo: Extra fields per salvare campi extra di tipo text (es. Login extra, Email, ecc.)
+  final Map<String, String>? extraFields;
 
   Account({
     String? id,
@@ -36,6 +39,7 @@ class Account {
     this.customIconPath,
     List<String>? enabledFields,
     this.otpSecret,
+    this.extraFields,
   }) : id = id ?? const Uuid().v4(),
        enabledFields =
            enabledFields ??
@@ -62,6 +66,7 @@ class Account {
     String? customIconPath,
     List<String>? enabledFields,
     String? otpSecret,
+    Map<String, String>? extraFields,
   }) {
     return Account(
       id: id ?? this.id,
@@ -77,6 +82,7 @@ class Account {
       customIconPath: customIconPath ?? this.customIconPath,
       enabledFields: enabledFields ?? this.enabledFields,
       otpSecret: otpSecret ?? this.otpSecret,
+      extraFields: extraFields ?? this.extraFields,
     );
   }
 }
