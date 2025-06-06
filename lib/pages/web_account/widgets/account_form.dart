@@ -1,6 +1,5 @@
 // lib/pages/web_account/widgets/account_form.dart
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:otp/OTP.dart';
 import '../../../controllers/account_controller.dart';
@@ -9,7 +8,8 @@ import '../../../helpers/password_strength_helper.dart';
 import '../../../widgets/password_generator_dialog.dart';
 import 'password_field.dart';
 import 'icon_selector.dart';
-import '../../qr_scanner_page.dart';
+import 'additional_fields_widget.dart';
+import 'otp_field_widget.dart';
 
 class AccountForm extends StatefulWidget {
   final Account? editingAccount;
@@ -25,12 +25,7 @@ class AccountFormState extends State<AccountForm> {
   final TextEditingController _loginController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-
-  // Controllers per campi aggiuntivi (es. Scadenza, Data)
-  final TextEditingController _scadenzaController = TextEditingController();
-  final TextEditingController _dataController = TextEditingController();
 
   final AccountController _accountController = AccountController();
 
@@ -52,8 +47,6 @@ class AccountFormState extends State<AccountForm> {
     'Login',
     'Password',
     'Website',
-    'One-time password (2FA)',
-    'Password monouso (2FA)',
     'Notes',
   ];
 
@@ -63,33 +56,15 @@ class AccountFormState extends State<AccountForm> {
     'Login',
     'Password',
     'Website',
-    'One-time password (2FA)',
     'Notes',
   ];
 
   // Rappresentazione interna dei campi extra
   List<Map<String, dynamic>> additionalFields = [];
 
-  // Opzioni menu "ADD ANOTHER FIELD"
-  static const List<String> fieldOptions = [
-    'Testo',
-    'Numero',
-    'Login',
-    'Password',
-    'Password monouso (2FA)',
-    'Website',
-    'Email',
-    'Telefono',
-    'Data',
-    'Pin',
-    'Privato',
-    'Applicazione',
-  ];
-
   // Variabili per OTP/TOTP
   String? _otpSecret;
-  int _remainingSeconds = 30;
-  late Timer _countdownTimer;
+  final TextEditingController _otpController = TextEditingController();
 
   @override
   void initState() {
@@ -101,18 +76,6 @@ class AccountFormState extends State<AccountForm> {
     if (widget.editingAccount != null) {
       setEditingAccount(widget.editingAccount);
     }
-
-    // Timer per il countdown OTP
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
-      final secondsSinceEpoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      final passed = secondsSinceEpoch % 30;
-      setState(() {
-        _remainingSeconds = 30 - passed;
-        if (_remainingSeconds == 30) {
-          _updateOTP();
-        }
-      });
-    });
   }
 
   @override
@@ -123,28 +86,16 @@ class AccountFormState extends State<AccountForm> {
     _websiteController.dispose();
     _otpController.dispose();
     _notesController.dispose();
-    _scadenzaController.dispose();
-    _dataController.dispose();
     for (var entry in additionalFields) {
       final ctrl = entry['controller'];
       if (ctrl is TextEditingController) ctrl.dispose();
     }
-    _countdownTimer.cancel();
     super.dispose();
   }
 
   // Aggiorna il codice OTP basato su _otpSecret
-  void _updateOTP() {
-    if (_otpSecret == null) return;
-    final code = OTP.generateTOTPCodeString(
-      _otpSecret!,
-      DateTime.now().millisecondsSinceEpoch,
-      length: 6,
-    );
-    setState(() {
-      _otpController.text = code;
-    });
-  }
+  // Removed, handled in OtpFieldWidget
+  void _updateOTP() {}
 
   // Ricalcola forza e crack‐time per la password principale
   void _onPasswordChanged() {
@@ -395,251 +346,17 @@ class AccountFormState extends State<AccountForm> {
   }
 
   // Generatore per un campo password extra
-  void _openPasswordGeneratorForField(Map<String, dynamic> entry) {
-    showDialog(
-      context: context,
-      builder:
-          (_) => PasswordGeneratorDialog(
-            initialLength: 12,
-            initialType: 'Random',
-            initialPassword: entry['controller'].text,
-            onPasswordGenerated: (pwd, _, __) {
-              setState(() {
-                entry['controller'].text = pwd;
-                final str = PasswordStrengthHelper.calculatePasswordStrength(
-                  pwd,
-                );
-                entry['passwordStrength'] = str;
-                entry['passwordStrengthLabel'] =
-                    PasswordStrengthHelper.getStrengthLabel(str);
-                entry['passwordCrackTime'] =
-                    PasswordStrengthHelper.estimateCrackTime(pwd);
-              });
-            },
-          ),
-    );
-  }
+  // Removed, handled in AdditionalFieldsWidget
 
   // Bottone "ADD ANOTHER FIELD"
-  Widget _buildAddFieldButton() {
-    return PopupMenuButton<String>(
-      onSelected: (opt) {
-        setState(() {
-          int count = enabledFields.where((e) => e.startsWith(opt)).length;
-          final label = count == 0 ? opt : '$opt (${count + 1})';
-
-          enabledFields.add(label);
-
-          switch (opt) {
-            case 'Website':
-              additionalFields.add({
-                'label': Text(label),
-                'type': 'website',
-                'controller': TextEditingController(),
-              });
-              break;
-            case 'Password':
-              additionalFields.add({
-                'label': Text(label),
-                'type': 'password',
-                'controller': TextEditingController(),
-                'passwordVisible': false,
-                'passwordStrength': 0.0,
-                'passwordStrengthLabel': '',
-                'passwordCrackTime': '',
-              });
-              break;
-            case 'Password monouso (2FA)':
-              additionalFields.add({
-                'label': Text(label),
-                'type': 'otp',
-                'controller': TextEditingController(),
-              });
-              break;
-            default:
-              additionalFields.add({
-                'label': Text(label),
-                'type': 'text',
-                'controller': TextEditingController(),
-              });
-          }
-        });
-      },
-      itemBuilder:
-          (ctx) =>
-              fieldOptions
-                  .map(
-                    (opt) =>
-                        PopupMenuItem<String>(value: opt, child: Text(opt)),
-                  )
-                  .toList(),
-      child: Container(
-        height: 36,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        alignment: Alignment.center,
-        child: const Text(
-          'ADD ANOTHER FIELD',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-      ),
-    );
-  }
+  // Removed, handled in AdditionalFieldsWidget
 
   // Costruisce ciascun campo extra in base al tipo
-  Widget _buildAdditionalField(Map<String, dynamic> entry) {
-    final type = entry['type'] as String;
-
-    if (type == 'otp') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: entry['controller'],
-                  decoration: InputDecoration(
-                    labelText: (entry['label'] as Text).data,
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.qr_code_scanner),
-                onPressed: () async {
-                  final res = await Navigator.push<String>(
-                    context,
-                    MaterialPageRoute(builder: (_) => const QRScannerPage()),
-                  );
-                  if (res != null) {
-                    setState(() {
-                      entry['controller'].text = res;
-                      _otpSecret = res;
-                      _updateOTP();
-                    });
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "Expires in: $_remainingSeconds sec",
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-        ],
-      );
-    } else if (type == 'password') {
-      return PasswordField(
-        controller: entry['controller'] as TextEditingController,
-        passwordVisible: entry['passwordVisible'] as bool,
-        passwordStrength: entry['passwordStrength'] as double,
-        passwordStrengthLabel: entry['passwordStrengthLabel'] as String,
-        passwordCrackTime: entry['passwordCrackTime'] as String,
-        onToggleVisibility: () {
-          setState(() {
-            entry['passwordVisible'] = !(entry['passwordVisible'] as bool);
-          });
-        },
-        onGeneratePassword: () => _openPasswordGeneratorForField(entry),
-        onDelete: () {
-          setState(() {
-            enabledFields.remove((entry['label'] as Text).data);
-            additionalFields.remove(entry);
-          });
-        },
-      );
-    } else {
-      final label = (entry['label'] as Text).data ?? '';
-      InputDecoration deco = InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      );
-      if (label.toLowerCase().contains('login') ||
-          label.toLowerCase().contains('email')) {
-        deco = deco.copyWith(
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => _showAccountSelection(entry['controller']),
-          ),
-        );
-      }
-      return Row(
-        children: [
-          Expanded(
-            child: TextFormField(
-              controller: entry['controller'],
-              decoration: deco,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () {
-              setState(() {
-                enabledFields.remove(label);
-                additionalFields.remove(entry);
-              });
-            },
-          ),
-        ],
-      );
-    }
-  }
+  // Removed, handled in AdditionalFieldsWidget
 
   // Costruisce un campo standard o lo ricerca in additionalFields
   Widget _buildField(String field) {
     if (standardFields.contains(field)) {
-      if (field == 'One-time password (2FA)' ||
-          field == 'Password monouso (2FA)') {
-        return _wrapField(
-          field,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _otpController,
-                      decoration: InputDecoration(
-                        labelText: field,
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.qr_code_scanner),
-                    onPressed: () async {
-                      final res = await Navigator.push<String>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const QRScannerPage(),
-                        ),
-                      );
-                      if (res != null) {
-                        setState(() {
-                          _otpSecret = res;
-                          _otpController.text = res;
-                          _updateOTP();
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Expires in: $_remainingSeconds sec",
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ),
-        );
-      }
       switch (field) {
         case 'Title':
           return TextFormField(
@@ -706,15 +423,6 @@ class AccountFormState extends State<AccountForm> {
           return const SizedBox();
       }
     }
-
-    // Se non è campo standard, lo cerco in additionalFields
-    final entry = additionalFields.firstWhere(
-      (e) => (e['label'] as Text).data == field,
-      orElse: () => {},
-    );
-    if (entry.isNotEmpty) {
-      return _buildAdditionalField(entry);
-    }
     return const SizedBox();
   }
 
@@ -774,8 +482,73 @@ class AccountFormState extends State<AccountForm> {
           const SizedBox(height: 16),
           // Tutti gli altri campi
           ..._buildAllFields(),
-          // Pulsante per aggiungere nuovi campi
-          _buildAddFieldButton(),
+          AdditionalFieldsWidget(
+            additionalFields: additionalFields,
+            enabledFields: enabledFields,
+            onDeleteField: _deleteField,
+            onAddField: (opt) {
+              setState(() {
+                int count =
+                    enabledFields.where((e) => e.startsWith(opt)).length;
+                final label = count == 0 ? opt : '$opt (${count + 1})';
+
+                enabledFields.add(label);
+
+                switch (opt) {
+                  case 'Website':
+                    additionalFields.add({
+                      'label': Text(label),
+                      'type': 'website',
+                      'controller': TextEditingController(),
+                    });
+                    break;
+                  case 'Password':
+                    additionalFields.add({
+                      'label': Text(label),
+                      'type': 'password',
+                      'controller': TextEditingController(),
+                      'passwordVisible': false,
+                      'passwordStrength': 0.0,
+                      'passwordStrengthLabel': '',
+                      'passwordCrackTime': '',
+                    });
+                    break;
+                  case 'Password monouso (2FA)':
+                    additionalFields.add({
+                      'label': Text(label),
+                      'type': 'otp',
+                      'controller': TextEditingController(),
+                    });
+                    break;
+                  default:
+                    additionalFields.add({
+                      'label': Text(label),
+                      'type': 'text',
+                      'controller': TextEditingController(),
+                    });
+                }
+              });
+            },
+            onUpdateField: (entry) {
+              setState(() {});
+            },
+          ),
+          if (enabledFields.contains('One-time password (2FA)') ||
+              enabledFields.contains('Password monouso (2FA)'))
+            OtpFieldWidget(
+              controller: _otpController,
+              otpSecret: _otpSecret,
+              onOtpSecretChanged: (secret) {
+                setState(() {
+                  _otpSecret = secret;
+                  _otpController.text = OTP.generateTOTPCodeString(
+                    secret,
+                    DateTime.now().millisecondsSinceEpoch,
+                    length: 6,
+                  );
+                });
+              },
+            ),
         ],
       ),
     );
