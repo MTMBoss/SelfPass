@@ -31,7 +31,7 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
+build/
 
 # Symbolication related
 app.*.symbols
@@ -43,7 +43,30 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
 
+# Android Gradle and wrapper files
+/android/.gradle/
+/android/gradlew
+/android/gradlew.bat
+/android/gradle-wrapper.jar
+
+# Android local properties
+/android/local.properties
+
+# Generated files
+/android/GeneratedPluginRegistrant.java
+
+# Native build folder
+/android/.cxx/
+
+# Android Studio captures
+/android/captures/
+
+# Keystore files (never commit these)
+/android/key.properties
+**/*.keystore
+**/*.jks
 
 struttura_lib_precedente.txt
 struttura_lib_aggiornato.txt
