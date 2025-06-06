@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../models/account.dart';
 
 class AccountController extends ChangeNotifier {
@@ -8,70 +10,29 @@ class AccountController extends ChangeNotifier {
     return _instance;
   }
 
-  AccountController._internal();
+  AccountController._internal() {
+    _loadAccounts();
+  }
 
-  List<Account> accounts = [
-    Account(
-      accountName: 'Google',
-      username: 'user@gmail.com',
-      password: '••••••',
-      website: 'https://www.google.com',
-      iconMode: 'Website Icon',
-      enabledFields: const [
-        'Title',
-        'Login',
-        'Password',
-        'Website',
-        'One-time password (2FA)',
-        'Notes',
-      ],
-    ),
-    Account(
-      accountName: 'Facebook',
-      username: 'user@facebook.com',
-      password: '••••••',
-      website: 'https://www.facebook.com',
-      iconMode: 'Website Icon',
-      enabledFields: const [
-        'Title',
-        'Login',
-        'Password',
-        'Website',
-        'One-time password (2FA)',
-        'Notes',
-      ],
-    ),
-    Account(
-      accountName: 'Twitter',
-      username: 'user@twitter.com',
-      password: '••••••',
-      website: 'https://www.twitter.com',
-      iconMode: 'Website Icon',
-      enabledFields: const [
-        'Title',
-        'Login',
-        'Password',
-        'Website',
-        'One-time password (2FA)',
-        'Notes',
-      ],
-    ),
-    Account(
-      accountName: 'Instagram',
-      username: 'user@instagram.com',
-      password: '••••••',
-      website: 'https://www.instagram.com',
-      iconMode: 'Website Icon',
-      enabledFields: const [
-        'Title',
-        'Login',
-        'Password',
-        'Website',
-        'One-time password (2FA)',
-        'Notes',
-      ],
-    ),
-  ];
+  List<Account> accounts = [];
+
+  Future<void> _loadAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? accountsJson = prefs.getString('accounts');
+    if (accountsJson != null) {
+      final List<dynamic> decoded = jsonDecode(accountsJson);
+      accounts = decoded.map((e) => Account.fromJson(e)).toList();
+    } else {
+      accounts = [];
+    }
+    notifyListeners();
+  }
+
+  Future<void> _saveAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = jsonEncode(accounts.map((e) => e.toJson()).toList());
+    await prefs.setString('accounts', encoded);
+  }
 
   List<Account> get favoriteAccounts =>
       accounts.where((account) => account.isFavorite).toList();
@@ -104,12 +65,14 @@ class AccountController extends ChangeNotifier {
     if (index != -1) {
       accounts[index].isFavorite = !accounts[index].isFavorite;
       notifyListeners();
+      _saveAccounts();
     }
   }
 
   void addAccount(Account account) {
     accounts.add(account);
     notifyListeners();
+    _saveAccounts();
   }
 
   void updateAccount(Account updatedAccount) {
@@ -119,6 +82,7 @@ class AccountController extends ChangeNotifier {
         isFavorite: accounts[index].isFavorite,
       );
       notifyListeners();
+      _saveAccounts();
     }
   }
 }
