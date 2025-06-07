@@ -20,8 +20,15 @@ class AccountController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final String? accountsJson = prefs.getString('accounts');
     if (accountsJson != null) {
-      final List<dynamic> decoded = jsonDecode(accountsJson);
-      accounts = decoded.map((e) => Account.fromJson(e)).toList();
+      try {
+        final List<dynamic> decoded = jsonDecode(accountsJson);
+        accounts = decoded.map((e) => Account.fromJson(e)).toList();
+      } catch (e) {
+        // Log dell'errore per debug e rimozione dei dati corrotti
+        debugPrint('Errore nel parsing degli account: $e');
+        accounts = [];
+        await prefs.remove('accounts');
+      }
     } else {
       accounts = [];
     }
