@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/account.dart';
+import '../services/encryption_service.dart';
+import '../services/auth_service.dart';
 
 class AccountController extends ChangeNotifier {
   static final AccountController _instance = AccountController._internal();
@@ -10,11 +12,30 @@ class AccountController extends ChangeNotifier {
     return _instance;
   }
 
+  final EncryptionService _encryptionService = EncryptionService();
+  final AuthService _authService = AuthService();
+
+  bool _isUnlocked = false;
+
   AccountController._internal() {
-    _loadAccounts();
+    _init();
   }
 
   List<Account> accounts = [];
+
+  Future<void> _init() async {
+    await _encryptionService.init();
+    await _loadAccounts();
+  }
+
+  Future<bool> unlock() async {
+    final authenticated = await _authService.authenticate();
+    if (authenticated) {
+      _isUnlocked = true;
+      notifyListeners();
+    }
+    return authenticated;
+  }
 
   Future<void> _loadAccounts() async {
     final prefs = await SharedPreferences.getInstance();
@@ -22,9 +43,27 @@ class AccountController extends ChangeNotifier {
     if (accountsJson != null) {
       try {
         final List<dynamic> decoded = jsonDecode(accountsJson);
-        accounts = decoded.map((e) => Account.fromJson(e)).toList();
+        accounts =
+            decoded.map((e) {
+              final account = Account.fromJson(e);
+              if (_isUnlocked) {
+                final decryptedPassword = _encryptionService.decrypt(
+                  account.password,
+                );
+                final decryptedAdditionalPasswords =
+                    account.additionalPasswords
+                        .map((p) => _encryptionService.decrypt(p))
+                        .toList();
+                return account.copyWith(
+                  password: decryptedPassword,
+                  additionalPasswords: decryptedAdditionalPasswords,
+                );
+              } else {
+                // Return account with encrypted passwords if not unlocked
+                return account;
+              }
+            }).toList();
       } catch (e) {
-        // Log dell'errore per debug e rimozione dei dati corrotti
         debugPrint('Errore nel parsing degli account: $e');
         accounts = [];
         await prefs.remove('accounts');
@@ -37,7 +76,23 @@ class AccountController extends ChangeNotifier {
 
   Future<void> _saveAccounts() async {
     final prefs = await SharedPreferences.getInstance();
-    final String encoded = jsonEncode(accounts.map((e) => e.toJson()).toList());
+    final encryptedAccounts =
+        accounts.map((account) {
+          final encryptedPassword = _encryptionService.encrypt(
+            account.password,
+          );
+          final encryptedAdditionalPasswords =
+              account.additionalPasswords
+                  .map((p) => _encryptionService.encrypt(p))
+                  .toList();
+          return account.copyWith(
+            password: encryptedPassword,
+            additionalPasswords: encryptedAdditionalPasswords,
+          );
+        }).toList();
+    final String encoded = jsonEncode(
+      encryptedAccounts.map((e) => e.toJson()).toList(),
+    );
     await prefs.setString('accounts', encoded);
   }
 

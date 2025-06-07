@@ -1,30 +1,25 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:selfpass/main.dart';
+import 'package:selfpass/main.dart'; // Assicurati che il path sia corretto
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('MyApp displays encryption results', (WidgetTester tester) async {
+    // Fornisci dei valori di test ai parametri richiesti.
+    const originalText = "TestoOriginale";
+    const cipherText = "TestoCifrato";
+    const decryptedText = "TestoDecifrato";
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Istanziamo MyApp con tutti i parametri richiesti.
+    await tester.pumpWidget(
+      const MyApp(
+        original: originalText,
+        cipher: cipherText,
+        decrypted: decryptedText,
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verifica che ogni pezzo di testo sia presente nel widget
+    expect(find.text(originalText), findsOneWidget);
+    expect(find.text(cipherText), findsOneWidget);
+    expect(find.text(decryptedText), findsOneWidget);
   });
 }
