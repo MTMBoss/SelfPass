@@ -1,6 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'pages/tutti.dart';
+import 'pages/Tutti/tutti.dart';
 import 'pages/preferiti.dart';
 import 'pages/biglietti.dart';
 import 'pages/impostazioni.dart';
