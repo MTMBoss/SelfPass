@@ -6,7 +6,7 @@ class PatenteGuidaPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Patente di guida')),
+      appBar: AppBar(),
       body: const Center(child: Text('Pagina Patente di guida')),
     );
   }

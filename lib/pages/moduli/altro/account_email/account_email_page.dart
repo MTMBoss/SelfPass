@@ -6,7 +6,7 @@ class AccountEmailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Account Email')),
+      appBar: AppBar(),
       body: const Center(child: Text('Pagina Account Email')),
     );
   }

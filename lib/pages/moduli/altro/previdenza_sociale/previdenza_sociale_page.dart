@@ -6,7 +6,7 @@ class PrevidenzaSocialePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Previdenza Sociale')),
+      appBar: AppBar(),
       body: const Center(child: Text('Pagina Previdenza Sociale')),
     );
   }

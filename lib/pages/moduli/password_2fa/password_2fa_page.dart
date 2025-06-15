@@ -6,7 +6,7 @@ class Password2FAPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Password monouso (2FA)')),
+      appBar: AppBar(),
       body: const Center(child: Text('Pagina Password monouso (2FA)')),
     );
   }

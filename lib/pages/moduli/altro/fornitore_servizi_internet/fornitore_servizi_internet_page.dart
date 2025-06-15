@@ -6,7 +6,7 @@ class FornitoreServiziInternetPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Fornitore dei servizi Internet')),
+      appBar: AppBar(),
       body: const Center(child: Text('Pagina Fornitore dei servizi Internet')),
     );
   }

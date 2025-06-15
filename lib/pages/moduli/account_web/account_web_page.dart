@@ -6,7 +6,7 @@ class AccountWebPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Account Web')),
+      appBar: AppBar(),
       body: const Center(child: Text('Pagina Account Web')),
     );
   }
