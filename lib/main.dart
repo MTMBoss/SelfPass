@@ -7,6 +7,7 @@ import 'pages/impostazioni.dart';
 import 'theme.dart';
 import 'widgets/menu.dart';
 import 'widgets/drawer.dart';
+import 'widgets/fab_menu.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,7 +22,6 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: appTheme,
       darkTheme: darkTheme,
-
       themeMode: ThemeMode.system, // o ThemeMode.dark / ThemeMode.light
       home: const HomeScreen(),
     );
@@ -92,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
       ),
+      floatingActionButton: const FabMenu(),
     );
   }
 }
