@@ -5,21 +5,25 @@ import '../../Campi/campi_login.dart';
 import '../../Campi/campi_chiave.dart';
 import '../../Campi/campo_qr.dart';
 
+import 'package:selfpass/models/credential.dart';
+import 'package:selfpass/models/credential_store.dart';
+
 class AccountWebPage extends StatefulWidget {
-  const AccountWebPage({super.key});
+  final Credential? credential;
+
+  const AccountWebPage({super.key, this.credential});
 
   @override
   State<AccountWebPage> createState() => _AccountWebPageState();
 }
 
 class _AccountWebPageState extends State<AccountWebPage> {
-  final TextEditingController titoloController = TextEditingController();
-  final TextEditingController loginController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController sitoWebController = TextEditingController();
-  final TextEditingController passwordMonousoController =
-      TextEditingController();
-  final TextEditingController noteController = TextEditingController();
+  late TextEditingController titoloController;
+  late TextEditingController loginController;
+  late TextEditingController passwordController;
+  late TextEditingController sitoWebController;
+  late TextEditingController passwordMonousoController;
+  late TextEditingController noteController;
 
   bool showTitolo = true;
   bool showLogin = true;
@@ -64,25 +68,48 @@ class _AccountWebPageState extends State<AccountWebPage> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.credential;
+    titoloController = TextEditingController(text: c?.titolo ?? '');
+    loginController = TextEditingController(text: c?.login ?? '');
+    passwordController = TextEditingController(text: c?.password ?? '');
+    sitoWebController = TextEditingController(text: c?.sitoWeb ?? '');
+    passwordMonousoController = TextEditingController(
+      text: c?.passwordMonouso ?? '',
+    );
+    noteController = TextEditingController(text: c?.note ?? '');
+
+    showTitolo = true;
+    showLogin = c == null ? true : c.showLogin;
+    showPassword = c == null ? true : c.showPassword;
+    showSitoWeb = c == null ? true : c.showSitoWeb;
+    showPasswordMonouso = c == null ? true : c.showPasswordMonouso;
+    showNote = c == null ? true : c.showNote;
+  }
+
   void _saveCredentials() {
-    // Placeholder save function: collect data and log it
-    final titolo = titoloController.text;
-    final login = loginController.text;
-    final password = passwordController.text;
-    final sitoWeb = sitoWebController.text;
-    final passwordMonouso = passwordMonousoController.text;
-    final note = noteController.text;
+    final credential = Credential(
+      titolo: showTitolo ? titoloController.text : '',
+      login: showLogin ? loginController.text : '',
+      password: showPassword ? passwordController.text : '',
+      sitoWeb: showSitoWeb ? sitoWebController.text : '',
+      passwordMonouso:
+          showPasswordMonouso ? passwordMonousoController.text : '',
+      note: showNote ? noteController.text : '',
+      showLogin: showLogin,
+      showPassword: showPassword,
+      showSitoWeb: showSitoWeb,
+      showPasswordMonouso: showPasswordMonouso,
+      showNote: showNote,
+    );
 
-    // Use debugPrint instead of print for better logging in Flutter
-    debugPrint('Saving credentials:');
-    debugPrint('Titolo: $titolo');
-    debugPrint('Login: $login');
-    debugPrint('Password: $password');
-    debugPrint('Sito Web: $sitoWeb');
-    debugPrint('Password Monouso: $passwordMonouso');
-    debugPrint('Note: $note');
-
-    // Implement actual save logic here
+    final store = CredentialStore();
+    if (widget.credential != null) {
+      store.removeCredential(widget.credential!);
+    }
+    store.addCredential(credential);
 
     // Optionally, navigate back after saving
     Navigator.of(context).pop();
