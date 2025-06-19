@@ -64,10 +64,41 @@ class _AccountWebPageState extends State<AccountWebPage> {
     super.dispose();
   }
 
+  void _saveCredentials() {
+    // Placeholder save function: collect data and log it
+    final titolo = titoloController.text;
+    final login = loginController.text;
+    final password = passwordController.text;
+    final sitoWeb = sitoWebController.text;
+    final passwordMonouso = passwordMonousoController.text;
+    final note = noteController.text;
+
+    // Use debugPrint instead of print for better logging in Flutter
+    debugPrint('Saving credentials:');
+    debugPrint('Titolo: $titolo');
+    debugPrint('Login: $login');
+    debugPrint('Password: $password');
+    debugPrint('Sito Web: $sitoWeb');
+    debugPrint('Password Monouso: $passwordMonouso');
+    debugPrint('Note: $note');
+
+    // Implement actual save logic here
+
+    // Optionally, navigate back after saving
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Account Web')),
+      appBar: AppBar(
+        title: const Text('Account Web'),
+        leading: IconButton(
+          icon: const Icon(Icons.check),
+          onPressed: _saveCredentials,
+          tooltip: 'Save credentials',
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
