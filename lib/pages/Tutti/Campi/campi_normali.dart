@@ -1,23 +1,6 @@
 import 'package:flutter/material.dart';
 import 'campo_testo_custom.dart';
 
-class TitoloCampo extends StatelessWidget {
-  final TextEditingController controller;
-  final VoidCallback? onRemove;
-
-  const TitoloCampo({super.key, required this.controller, this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    return CampoTestoCustom(
-      label: 'Titolo',
-      controller: controller,
-      onRemove: onRemove,
-      obscureText: false,
-    );
-  }
-}
-
 class SitoWebCampo extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback? onRemove;
