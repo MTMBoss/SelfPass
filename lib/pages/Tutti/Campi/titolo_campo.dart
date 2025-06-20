@@ -3,9 +3,15 @@ import 'campo_testo_custom.dart';
 
 class TitoloCampo extends StatefulWidget {
   final TextEditingController controller;
+  final TextEditingController? sitoWebController;
   final VoidCallback? onRemove;
 
-  const TitoloCampo({super.key, required this.controller, this.onRemove});
+  const TitoloCampo({
+    super.key,
+    required this.controller,
+    this.sitoWebController,
+    this.onRemove,
+  });
 
   @override
   TitoloCampoState createState() => TitoloCampoState();
@@ -15,6 +21,63 @@ class TitoloCampoState extends State<TitoloCampo> {
   IconData? selectedIcon;
   Color? selectedColor;
   String? customSymbol;
+
+  String? faviconUrl;
+  ImageProvider? faviconImage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sitoWebController != null) {
+      widget.sitoWebController!.addListener(_updateFavicon);
+      _updateFavicon();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.sitoWebController != null) {
+      widget.sitoWebController!.removeListener(_updateFavicon);
+    }
+    super.dispose();
+  }
+
+  void _updateFavicon() {
+    final urlText = widget.sitoWebController!.text.trim();
+    if (urlText.isEmpty) {
+      setState(() {
+        faviconUrl = null;
+        faviconImage = null;
+      });
+      return;
+    }
+    Uri? uri;
+    try {
+      uri = Uri.parse(urlText);
+      if (!uri.hasScheme) {
+        uri = Uri.parse('https://$urlText');
+      }
+    } catch (e) {
+      uri = null;
+    }
+    if (uri == null || uri.host.isEmpty) {
+      setState(() {
+        faviconUrl = null;
+        faviconImage = null;
+      });
+      return;
+    }
+    final faviconUri = Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: '/favicon.ico',
+    );
+    setState(() {
+      faviconUrl = faviconUri.toString();
+      faviconImage = NetworkImage(faviconUrl!);
+    });
+  }
 
   void _showOptionsMenu() async {
     final RenderBox button = context.findRenderObject() as RenderBox;
@@ -54,9 +117,13 @@ class TitoloCampoState extends State<TitoloCampo> {
     switch (selected) {
       case 'website_icon':
         setState(() {
-          selectedIcon = Icons.language;
+          selectedIcon = null;
           selectedColor = null;
           customSymbol = null;
+          // Show favicon if available
+          if (faviconImage == null) {
+            selectedIcon = Icons.language;
+          }
         });
         break;
       case 'select_symbol':
@@ -183,8 +250,17 @@ class TitoloCampoState extends State<TitoloCampo> {
         customSymbol!,
         style: TextStyle(fontSize: 24, color: selectedColor ?? Colors.black),
       );
+    } else if (faviconImage != null) {
+      iconWidget = Image(
+        image: faviconImage!,
+        width: 24,
+        height: 24,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(Icons.language);
+        },
+      );
     } else {
-      iconWidget = const Icon(Icons.more_vert);
+      iconWidget = const Icon(Icons.image);
     }
 
     return Row(

@@ -134,6 +134,7 @@ class _AccountWebPageState extends State<AccountWebPage> {
             if (showTitolo) ...[
               TitoloCampo(
                 controller: titoloController,
+                sitoWebController: sitoWebController,
                 // Remove the onRemove callback to hide the "x" button
               ),
               const SizedBox(height: 12),
