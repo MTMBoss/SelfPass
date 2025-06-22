@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'campo_testo_custom.dart';
 
 class TitoloCampo extends StatefulWidget {
@@ -14,255 +16,300 @@ class TitoloCampo extends StatefulWidget {
   });
 
   @override
-  TitoloCampoState createState() => TitoloCampoState();
+  State<TitoloCampo> createState() => _TitoloCampoState();
 }
 
-class TitoloCampoState extends State<TitoloCampo> {
-  IconData? selectedIcon;
-  Color? selectedColor;
+class _TitoloCampoState extends State<TitoloCampo> {
+  Color selectedColor = Colors.black;
   String? customSymbol;
+  bool applyColorToEmoji = false;
+  String _faviconUrl = '';
+  Timer? _debounce;
 
-  String? faviconUrl;
-  ImageProvider? faviconImage;
+  static const List<Color> _presetColors = [
+    Colors.red,
+    Colors.green,
+    Colors.blue,
+    Colors.orange,
+    Colors.purple,
+    Colors.grey,
+    Colors.black,
+  ];
 
   @override
   void initState() {
     super.initState();
     if (widget.sitoWebController != null) {
-      widget.sitoWebController!.addListener(_updateFavicon);
-      _updateFavicon();
+      widget.sitoWebController!.addListener(_onUrlChanged);
+      _onUrlChanged();
     }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     if (widget.sitoWebController != null) {
-      widget.sitoWebController!.removeListener(_updateFavicon);
+      widget.sitoWebController!.removeListener(_onUrlChanged);
     }
     super.dispose();
   }
 
-  void _updateFavicon() {
-    final urlText = widget.sitoWebController!.text.trim();
-    if (urlText.isEmpty) {
-      setState(() {
-        faviconUrl = null;
-        faviconImage = null;
-      });
-      return;
-    }
-    Uri? uri;
-    try {
-      uri = Uri.parse(urlText);
-      if (!uri.hasScheme) {
-        uri = Uri.parse('https://$urlText');
-      }
-    } catch (e) {
-      uri = null;
-    }
-    if (uri == null || uri.host.isEmpty) {
-      setState(() {
-        faviconUrl = null;
-        faviconImage = null;
-      });
-      return;
-    }
-    final faviconUri = Uri(
-      scheme: uri.scheme,
-      host: uri.host,
-      port: uri.hasPort ? uri.port : null,
-      path: '/favicon.ico',
-    );
+  void _onUrlChanged() {
+    // reset immediato di simbolo e colore
     setState(() {
-      faviconUrl = faviconUri.toString();
-      faviconImage = NetworkImage(faviconUrl!);
+      customSymbol = null;
+      applyColorToEmoji = false;
+      selectedColor = Colors.black;
+    });
+
+    // debounce favicon
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      final text = widget.sitoWebController!.text.trim();
+      if (text.contains('.') && text.length > 3) {
+        Uri? uri = Uri.tryParse(text);
+        if (uri != null && !uri.hasScheme) {
+          uri = Uri.parse('https://$text');
+        }
+        if (uri?.host.isNotEmpty ?? false) {
+          final url =
+              Uri(
+                scheme: uri!.scheme,
+                host: uri.host,
+                port: uri.hasPort ? uri.port : null,
+                path: '/favicon.ico',
+              ).toString();
+          setState(() {
+            _faviconUrl = url;
+          });
+          return;
+        }
+      }
+      setState(() {
+        _faviconUrl = '';
+      });
     });
   }
 
-  void _showOptionsMenu() async {
-    final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-
-    final Offset btnOrigin = button.localToGlobal(
-      Offset.zero,
-      ancestor: overlay,
-    );
-    final Size btnSize = button.size;
-
-    // offset verticale in più per non coprire l'icona
-    const double yOffset = 8;
-
-    // posizione a destra e leggermente sotto il pulsante
-    final double left = btnOrigin.dx + btnSize.width;
-    final double top = btnOrigin.dy + btnSize.height + yOffset;
-    final double right = overlay.size.width - left;
-    final double bottom = overlay.size.height - top;
-
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(left, top, right, bottom),
-      items: const [
-        PopupMenuItem(value: 'website_icon', child: Text('Icona Sito Web')),
-        PopupMenuItem(value: 'select_symbol', child: Text('Seleziona Simbolo')),
-        PopupMenuItem(value: 'select_color', child: Text('Seleziona Colore')),
-        PopupMenuItem(
-          value: 'custom_icon',
-          child: Text('Icona Personalizzata'),
-        ),
-      ],
-    );
-
-    if (selected == null) return;
-    switch (selected) {
-      case 'website_icon':
-        setState(() {
-          selectedIcon = null;
-          selectedColor = null;
-          customSymbol = null;
-          // Show favicon if available
-          if (faviconImage == null) {
-            selectedIcon = Icons.language;
-          }
-        });
-        break;
-      case 'select_symbol':
-        _selectSymbol();
-        break;
-      case 'select_color':
-        _selectColor();
-        break;
-      case 'custom_icon':
-        _customIconInput();
-        break;
-    }
-  }
-
   Future<void> _selectSymbol() async {
-    final symbol = await showDialog<String>(
+    const symbols = ['★', '✓', '✗', '⚡', '❤️', '🔥', '⭐'];
+    final picked = await showDialog<String>(
       context: context,
       builder:
           (_) => SimpleDialog(
             title: const Text('Seleziona Simbolo'),
             children: [
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, '★'),
-                child: const Text('★'),
-              ),
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, '✓'),
-                child: const Text('✓'),
-              ),
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, '✗'),
-                child: const Text('✗'),
-              ),
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, '⚡'),
-                child: const Text('⚡'),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children:
+                      symbols.map((s) {
+                        return GestureDetector(
+                          onTap: () => Navigator.pop(context, s),
+                          child: Text(s, style: const TextStyle(fontSize: 28)),
+                        );
+                      }).toList(),
+                ),
               ),
             ],
           ),
     );
-    if (symbol != null) {
-      setState(() {
-        customSymbol = symbol;
-        selectedIcon = null;
-        selectedColor = null;
-      });
-    }
-  }
+    if (!mounted || picked == null) return;
 
-  Future<void> _selectColor() async {
-    final color = await showDialog<Color>(
-      context: context,
-      builder:
-          (_) => SimpleDialog(
-            title: const Text('Seleziona Colore'),
-            children: [
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, Colors.red),
-                child: const Text('Rosso'),
-              ),
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, Colors.green),
-                child: const Text('Verde'),
-              ),
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, Colors.blue),
-                child: const Text('Blu'),
-              ),
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, Colors.orange),
-                child: const Text('Arancione'),
-              ),
-            ],
-          ),
-    );
-    if (color != null) {
-      setState(() {
-        selectedColor = color;
-        selectedIcon = null;
-        customSymbol = null;
-      });
-    }
-  }
-
-  Future<void> _customIconInput() async {
-    final textController = TextEditingController(text: customSymbol ?? '');
-    final result = await showDialog<String>(
+    customSymbol = picked;
+    final apply = await showDialog<bool>(
       context: context,
       builder:
           (_) => AlertDialog(
-            title: const Text('Icona Personalizzata'),
-            content: TextField(
-              controller: textController,
-              decoration: const InputDecoration(hintText: 'Inserisci simbolo'),
+            title: const Text('Colorazione Emoji'),
+            content: const Text(
+              'Vuoi applicare il colore selezionato\n'
+              'o mantenerne i colori originali?',
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Annulla'),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Originali'),
               ),
               TextButton(
-                onPressed: () => Navigator.pop(context, textController.text),
-                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Applica colore'),
               ),
             ],
           ),
     );
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        customSymbol = result;
-        selectedIcon = null;
-        selectedColor = null;
-      });
+    if (!mounted) return;
+
+    applyColorToEmoji = apply ?? false;
+    if (applyColorToEmoji) {
+      final c = await _pickColor();
+      if (mounted && c != null) {
+        selectedColor = c;
+      }
     }
+    setState(() {});
+  }
+
+  Future<Color?> _pickColor() async {
+    final result = await showDialog<dynamic>(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: const Text('Scegli un colore'),
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children:
+                      _presetColors.map((col) {
+                        return GestureDetector(
+                          onTap: () => Navigator.pop(ctx, col),
+                          child: CircleAvatar(backgroundColor: col, radius: 18),
+                        );
+                      }).toList(),
+                ),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, 'custom'),
+                child: const Text('Altri colori…'),
+              ),
+            ],
+          ),
+    );
+    if (!mounted || result == null) return null;
+
+    if (result == 'custom') {
+      Color tmp = selectedColor;
+      final picked = await showDialog<Color>(
+        context: context,
+        builder:
+            (_) => AlertDialog(
+              title: const Text('Altri colori'),
+              content: BlockPicker(
+                pickerColor: tmp,
+                onColorChanged: (c) => tmp = c,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Annulla'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, tmp),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+      );
+      return picked;
+    }
+    return result as Color;
+  }
+
+  Future<void> _onColorIconPressed() async {
+    // reset simbolo, favicon e colore
+    setState(() {
+      customSymbol = null;
+      applyColorToEmoji = false;
+      _faviconUrl = '';
+    });
+    final c = await _pickColor();
+    if (mounted && c != null) {
+      setState(() => selectedColor = c);
+    }
+  }
+
+  Future<void> _showOptionsMenu() async {
+    final choice = await showMenu<String>(
+      context: context,
+      position: const RelativeRect.fromLTRB(100, 100, 0, 0),
+      items: const [
+        PopupMenuItem(value: 'website', child: Text('Icona Sito Web')),
+        PopupMenuItem(value: 'symbol', child: Text('Emoji/Simbolo')),
+        PopupMenuItem(value: 'color', child: Text('Colore icona')),
+        PopupMenuItem(value: 'reset', child: Text('Reset')),
+      ],
+    );
+    if (!mounted) return;
+
+    switch (choice) {
+      case 'website':
+        setState(() {
+          customSymbol = null;
+          applyColorToEmoji = false;
+          selectedColor = Colors.black;
+          _faviconUrl = '';
+        });
+        break;
+      case 'symbol':
+        await _selectSymbol();
+        return;
+      case 'color':
+        await _onColorIconPressed();
+        return;
+      case 'reset':
+        setState(() {
+          customSymbol = null;
+          applyColorToEmoji = false;
+          selectedColor = Colors.black;
+          _faviconUrl = '';
+        });
+        break;
+      default:
+        return;
+    }
+  }
+
+  Widget _buildIcon() {
+    if (customSymbol != null) {
+      if (applyColorToEmoji) {
+        return ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback:
+              (bounds) => LinearGradient(
+                colors: [selectedColor, selectedColor],
+              ).createShader(bounds),
+          child: Text(customSymbol!, style: const TextStyle(fontSize: 28)),
+        );
+      }
+      return Text(customSymbol!, style: const TextStyle(fontSize: 28));
+    }
+
+    if (_faviconUrl.isNotEmpty) {
+      return Image.network(
+        _faviconUrl,
+        width: 28,
+        height: 28,
+        loadingBuilder: (ctx, child, progress) {
+          if (progress != null) {
+            return const SizedBox(
+              width: 28,
+              height: 28,
+              child: Center(
+                child: SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
+          return child;
+        },
+        errorBuilder:
+            (_, __, ___) => Icon(Icons.language, color: selectedColor),
+      );
+    }
+
+    return CircleAvatar(radius: 14, backgroundColor: selectedColor);
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget iconWidget;
-    if (selectedIcon != null) {
-      iconWidget = Icon(selectedIcon, color: selectedColor ?? Colors.black);
-    } else if (customSymbol != null) {
-      iconWidget = Text(
-        customSymbol!,
-        style: TextStyle(fontSize: 24, color: selectedColor ?? Colors.black),
-      );
-    } else if (faviconImage != null) {
-      iconWidget = Image(
-        image: faviconImage!,
-        width: 24,
-        height: 24,
-        errorBuilder: (context, error, stackTrace) {
-          return const Icon(Icons.language);
-        },
-      );
-    } else {
-      iconWidget = const Icon(Icons.image);
-    }
-
     return Row(
       children: [
         Expanded(
@@ -270,13 +317,12 @@ class TitoloCampoState extends State<TitoloCampo> {
             label: 'Titolo',
             controller: widget.controller,
             onRemove: widget.onRemove,
-            obscureText: false,
           ),
         ),
         IconButton(
-          icon: iconWidget,
-          onPressed: _showOptionsMenu,
+          icon: _buildIcon(),
           tooltip: 'Opzioni Icona',
+          onPressed: _showOptionsMenu,
         ),
       ],
     );
