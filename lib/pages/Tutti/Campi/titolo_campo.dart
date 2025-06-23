@@ -8,11 +8,30 @@ class TitoloCampo extends StatefulWidget {
   final TextEditingController? sitoWebController;
   final VoidCallback? onRemove;
 
+  // New parameters for logo state and callbacks
+  final Color selectedColor;
+  final String? customSymbol;
+  final bool applyColorToEmoji;
+  final String? faviconUrl;
+
+  final ValueChanged<Color> onSelectedColorChanged;
+  final ValueChanged<String?> onCustomSymbolChanged;
+  final ValueChanged<bool> onApplyColorToEmojiChanged;
+  final ValueChanged<String?> onFaviconUrlChanged;
+
   const TitoloCampo({
     super.key,
     required this.controller,
     this.sitoWebController,
     this.onRemove,
+    this.selectedColor = Colors.black,
+    this.customSymbol,
+    this.applyColorToEmoji = false,
+    this.faviconUrl,
+    required this.onSelectedColorChanged,
+    required this.onCustomSymbolChanged,
+    required this.onApplyColorToEmojiChanged,
+    required this.onFaviconUrlChanged,
   });
 
   @override
@@ -20,10 +39,10 @@ class TitoloCampo extends StatefulWidget {
 }
 
 class _TitoloCampoState extends State<TitoloCampo> {
-  Color selectedColor = Colors.black;
+  late Color selectedColor;
   String? customSymbol;
-  bool applyColorToEmoji = false;
-  String _faviconUrl = '';
+  late bool applyColorToEmoji;
+  late String _faviconUrl;
   Timer? _debounce;
 
   static const List<Color> _presetColors = [
@@ -39,6 +58,11 @@ class _TitoloCampoState extends State<TitoloCampo> {
   @override
   void initState() {
     super.initState();
+    selectedColor = widget.selectedColor;
+    customSymbol = widget.customSymbol;
+    applyColorToEmoji = widget.applyColorToEmoji;
+    _faviconUrl = widget.faviconUrl ?? '';
+
     if (widget.sitoWebController != null) {
       widget.sitoWebController!.addListener(_onUrlChanged);
       _onUrlChanged();
@@ -60,6 +84,10 @@ class _TitoloCampoState extends State<TitoloCampo> {
       customSymbol = null;
       applyColorToEmoji = false;
       selectedColor = Colors.black;
+      widget.onSelectedColorChanged(selectedColor);
+      widget.onCustomSymbolChanged(null);
+      widget.onApplyColorToEmojiChanged(false);
+      widget.onFaviconUrlChanged('');
     });
 
     // debounce favicon
@@ -82,12 +110,14 @@ class _TitoloCampoState extends State<TitoloCampo> {
           setState(() {
             _faviconUrl = url;
           });
+          widget.onFaviconUrlChanged(url);
           return;
         }
       }
       setState(() {
         _faviconUrl = '';
       });
+      widget.onFaviconUrlChanged('');
     });
   }
 
@@ -119,6 +149,8 @@ class _TitoloCampoState extends State<TitoloCampo> {
     if (!mounted || picked == null) return;
 
     customSymbol = picked;
+    widget.onCustomSymbolChanged(customSymbol);
+
     final apply = await showDialog<bool>(
       context: context,
       builder:
@@ -143,10 +175,13 @@ class _TitoloCampoState extends State<TitoloCampo> {
     if (!mounted) return;
 
     applyColorToEmoji = apply ?? false;
+    widget.onApplyColorToEmojiChanged(applyColorToEmoji);
+
     if (applyColorToEmoji) {
       final c = await _pickColor();
       if (mounted && c != null) {
         selectedColor = c;
+        widget.onSelectedColorChanged(selectedColor);
       }
     }
     setState(() {});
@@ -216,10 +251,16 @@ class _TitoloCampoState extends State<TitoloCampo> {
       customSymbol = null;
       applyColorToEmoji = false;
       _faviconUrl = '';
+      widget.onCustomSymbolChanged(null);
+      widget.onApplyColorToEmojiChanged(false);
+      widget.onFaviconUrlChanged('');
     });
     final c = await _pickColor();
     if (mounted && c != null) {
-      setState(() => selectedColor = c);
+      setState(() {
+        selectedColor = c;
+        widget.onSelectedColorChanged(selectedColor);
+      });
     }
   }
 
@@ -243,6 +284,10 @@ class _TitoloCampoState extends State<TitoloCampo> {
           applyColorToEmoji = false;
           selectedColor = Colors.black;
           _faviconUrl = '';
+          widget.onCustomSymbolChanged(null);
+          widget.onApplyColorToEmojiChanged(false);
+          widget.onSelectedColorChanged(Colors.black);
+          widget.onFaviconUrlChanged('');
         });
         break;
       case 'symbol':
@@ -257,6 +302,10 @@ class _TitoloCampoState extends State<TitoloCampo> {
           applyColorToEmoji = false;
           selectedColor = Colors.black;
           _faviconUrl = '';
+          widget.onCustomSymbolChanged(null);
+          widget.onApplyColorToEmojiChanged(false);
+          widget.onSelectedColorChanged(Colors.black);
+          widget.onFaviconUrlChanged('');
         });
         break;
       default:
@@ -300,8 +349,10 @@ class _TitoloCampoState extends State<TitoloCampo> {
           }
           return child;
         },
-        errorBuilder:
-            (_, __, ___) => Icon(Icons.language, color: selectedColor),
+        errorBuilder: (_, __, ___) {
+          widget.onFaviconUrlChanged('');
+          return Icon(Icons.language, color: selectedColor);
+        },
       );
     }
 

@@ -33,6 +33,12 @@ class _AccountWebPageState extends State<AccountWebPage> {
   bool showPasswordMonouso = true;
   bool showNote = true;
 
+  // New logo state variables
+  Color selectedColor = Colors.black;
+  String? customSymbol;
+  bool applyColorToEmoji = false;
+  String? faviconUrl;
+
   void removeField(String field) {
     setState(() {
       switch (field) {
@@ -88,6 +94,22 @@ class _AccountWebPageState extends State<AccountWebPage> {
     showSitoWeb = c == null ? true : c.showSitoWeb;
     showPasswordMonouso = c == null ? true : c.showPasswordMonouso;
     showNote = c == null ? true : c.showNote;
+
+    // Initialize logo state from credential
+    if (c != null) {
+      selectedColor =
+          c.selectedColorValue != null
+              ? Color.fromARGB(
+                (c.selectedColorValue! >> 24) & 0xFF,
+                (c.selectedColorValue! >> 16) & 0xFF,
+                (c.selectedColorValue! >> 8) & 0xFF,
+                c.selectedColorValue! & 0xFF,
+              )
+              : Colors.black;
+      customSymbol = c.customSymbol;
+      applyColorToEmoji = c.applyColorToEmoji;
+      faviconUrl = c.faviconUrl;
+    }
   }
 
   void _saveCredentials() {
@@ -104,6 +126,10 @@ class _AccountWebPageState extends State<AccountWebPage> {
       showSitoWeb: showSitoWeb,
       showPasswordMonouso: showPasswordMonouso,
       showNote: showNote,
+      selectedColorValue: selectedColor.toARGB32(),
+      customSymbol: customSymbol,
+      applyColorToEmoji: applyColorToEmoji,
+      faviconUrl: faviconUrl,
     );
 
     final store = CredentialStore();
@@ -135,6 +161,46 @@ class _AccountWebPageState extends State<AccountWebPage> {
               TitoloCampo(
                 controller: titoloController,
                 sitoWebController: sitoWebController,
+                selectedColor: selectedColor,
+                customSymbol: customSymbol,
+                applyColorToEmoji: applyColorToEmoji,
+                faviconUrl: faviconUrl,
+                onSelectedColorChanged: (color) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        selectedColor = color;
+                      });
+                    }
+                  });
+                },
+                onCustomSymbolChanged: (symbol) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        customSymbol = symbol;
+                      });
+                    }
+                  });
+                },
+                onApplyColorToEmojiChanged: (apply) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        applyColorToEmoji = apply;
+                      });
+                    }
+                  });
+                },
+                onFaviconUrlChanged: (url) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        faviconUrl = url;
+                      });
+                    }
+                  });
+                },
                 // Remove the onRemove callback to hide the "x" button
               ),
               const SizedBox(height: 12),

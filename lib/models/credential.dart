@@ -12,6 +12,12 @@ class Credential {
   final bool showPasswordMonouso;
   final bool showNote;
 
+  // New fields for logo state
+  final int? selectedColorValue;
+  final String? customSymbol;
+  final bool applyColorToEmoji;
+  final String? faviconUrl;
+
   Credential({
     required this.titolo,
     required this.login,
@@ -24,5 +30,9 @@ class Credential {
     this.showSitoWeb = true,
     this.showPasswordMonouso = true,
     this.showNote = true,
+    this.selectedColorValue,
+    this.customSymbol,
+    this.applyColorToEmoji = false,
+    this.faviconUrl,
   });
 }
