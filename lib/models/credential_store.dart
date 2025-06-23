@@ -25,4 +25,12 @@ class CredentialStore extends ChangeNotifier {
     _credentials.remove(credential);
     notifyListeners();
   }
+
+  void updateCredential(Credential oldCredential, Credential newCredential) {
+    final index = _credentials.indexOf(oldCredential);
+    if (index != -1) {
+      _credentials[index] = newCredential;
+      notifyListeners();
+    }
+  }
 }

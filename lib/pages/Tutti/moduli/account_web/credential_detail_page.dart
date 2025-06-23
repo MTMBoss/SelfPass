@@ -23,6 +23,12 @@ class _CredentialDetailPageState extends State<CredentialDetailPage> {
   late TextEditingController passwordMonousoController;
   late TextEditingController noteController;
 
+  // Logo related state
+  Color selectedColor = Colors.black;
+  String? customSymbol;
+  bool applyColorToEmoji = false;
+  String? faviconUrl;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +44,20 @@ class _CredentialDetailPageState extends State<CredentialDetailPage> {
       text: widget.credential.passwordMonouso,
     );
     noteController = TextEditingController(text: widget.credential.note);
+
+    // Initialize logo state from credential
+    selectedColor =
+        widget.credential.selectedColorValue != null
+            ? Color.fromARGB(
+              (widget.credential.selectedColorValue! >> 24) & 0xFF,
+              (widget.credential.selectedColorValue! >> 16) & 0xFF,
+              (widget.credential.selectedColorValue! >> 8) & 0xFF,
+              widget.credential.selectedColorValue! & 0xFF,
+            )
+            : Colors.black;
+    customSymbol = widget.credential.customSymbol;
+    applyColorToEmoji = widget.credential.applyColorToEmoji;
+    faviconUrl = widget.credential.faviconUrl;
   }
 
   @override
@@ -59,6 +79,10 @@ class _CredentialDetailPageState extends State<CredentialDetailPage> {
       sitoWeb: sitoWebController.text,
       passwordMonouso: passwordMonousoController.text,
       note: noteController.text,
+      selectedColorValue: selectedColor.toARGB32(),
+      customSymbol: customSymbol,
+      applyColorToEmoji: applyColorToEmoji,
+      faviconUrl: faviconUrl,
     );
 
     final store = CredentialStore();
@@ -99,17 +123,44 @@ class _CredentialDetailPageState extends State<CredentialDetailPage> {
         title: Text(isEditing ? 'Edit Credential' : 'Credential Details'),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
           if (isEditing) {
             _saveChanges();
           } else {
             // Navigate to AccountWebPage for editing existing credential
-            Navigator.of(context).push(
+            final updatedCredential = await Navigator.of(
+              context,
+            ).push<Credential>(
               MaterialPageRoute(
                 builder:
                     (context) => AccountWebPage(credential: widget.credential),
               ),
             );
+            if (updatedCredential != null) {
+              setState(() {
+                // Update local state with updated credential data
+                titoloController.text = updatedCredential.titolo;
+                loginController.text = updatedCredential.login;
+                passwordController.text = updatedCredential.password;
+                sitoWebController.text = updatedCredential.sitoWeb;
+                passwordMonousoController.text =
+                    updatedCredential.passwordMonouso;
+                noteController.text = updatedCredential.note;
+
+                selectedColor =
+                    updatedCredential.selectedColorValue != null
+                        ? Color.fromARGB(
+                          (updatedCredential.selectedColorValue! >> 24) & 0xFF,
+                          (updatedCredential.selectedColorValue! >> 16) & 0xFF,
+                          (updatedCredential.selectedColorValue! >> 8) & 0xFF,
+                          updatedCredential.selectedColorValue! & 0xFF,
+                        )
+                        : Colors.black;
+                customSymbol = updatedCredential.customSymbol;
+                applyColorToEmoji = updatedCredential.applyColorToEmoji;
+                faviconUrl = updatedCredential.faviconUrl;
+              });
+            }
           }
         },
         tooltip: isEditing ? 'Save' : 'Edit',
@@ -120,7 +171,45 @@ class _CredentialDetailPageState extends State<CredentialDetailPage> {
         child: ListView(
           children: [
             if (titoloController.text.isNotEmpty)
-              _buildTextField('Titolo', titoloController, enabled: isEditing),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      'Titolo',
+                      titoloController,
+                      enabled: isEditing,
+                    ),
+                  ),
+                  if (faviconUrl != null && faviconUrl!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Image.network(
+                        faviconUrl!,
+                        width: 32,
+                        height: 32,
+                        errorBuilder:
+                            (context, error, stackTrace) =>
+                                const Icon(Icons.image_not_supported, size: 32),
+                      ),
+                    ),
+                  if (customSymbol != null && customSymbol!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Text(
+                        customSymbol!,
+                        style: TextStyle(
+                          fontSize: 32,
+                          color:
+                              applyColorToEmoji ? selectedColor : Colors.black,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            if (titoloController.text.isNotEmpty)
+              // Removed duplicate title field here because it is already shown in Row with logo
+              Container(),
             if (loginController.text.isNotEmpty)
               _buildTextField('Login', loginController, enabled: isEditing),
             if (passwordController.text.isNotEmpty)

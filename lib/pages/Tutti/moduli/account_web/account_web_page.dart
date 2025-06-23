@@ -134,12 +134,13 @@ class _AccountWebPageState extends State<AccountWebPage> {
 
     final store = CredentialStore();
     if (widget.credential != null) {
-      store.removeCredential(widget.credential!);
+      store.updateCredential(widget.credential!, credential);
+    } else {
+      store.addCredential(credential);
     }
-    store.addCredential(credential);
 
-    // Optionally, navigate back after saving
-    Navigator.of(context).pop();
+    // Pass the updated credential back to the previous page
+    Navigator.of(context).pop(credential);
   }
 
   @override
