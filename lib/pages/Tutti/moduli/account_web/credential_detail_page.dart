@@ -192,17 +192,41 @@ class _CredentialDetailPageState extends State<CredentialDetailPage> {
                             (context, error, stackTrace) =>
                                 const Icon(Icons.image_not_supported, size: 32),
                       ),
-                    ),
-                  if (customSymbol != null && customSymbol!.isNotEmpty)
+                    )
+                  else if (customSymbol != null && customSymbol!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(left: 8.0),
-                      child: Text(
-                        customSymbol!,
-                        style: TextStyle(
-                          fontSize: 32,
-                          color:
-                              applyColorToEmoji ? selectedColor : Colors.black,
+                      child: ShaderMask(
+                        blendMode: BlendMode.srcIn,
+                        shaderCallback:
+                            (bounds) => LinearGradient(
+                              colors: [selectedColor, selectedColor],
+                            ).createShader(bounds),
+                        child: Text(
+                          customSymbol!,
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: Colors.white,
+                            shadows:
+                                applyColorToEmoji
+                                    ? [
+                                      Shadow(
+                                        offset: Offset(0, 0),
+                                        blurRadius: 3,
+                                        color: Colors.black.withAlpha(128),
+                                      ),
+                                    ]
+                                    : null,
+                          ),
                         ),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: selectedColor,
                       ),
                     ),
                 ],
