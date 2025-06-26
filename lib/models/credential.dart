@@ -1,3 +1,32 @@
+// lib/models/credential.dart
+
+import 'package:flutter/foundation.dart';
+
+/// identifica il tipo di campo
+enum FieldType {
+  testo,
+  numero,
+  login,
+  password,
+  passwordMonouso,
+  scadenza,
+  sitoWeb,
+  email,
+  telefono,
+  data,
+  pin,
+  privato,
+  applicazione,
+}
+
+/// coppia tipo+valore per i campi extra
+@immutable
+class CustomField {
+  final FieldType type;
+  final String value;
+  const CustomField(this.type, this.value);
+}
+
 class Credential {
   final String titolo;
   final String login;
@@ -12,11 +41,14 @@ class Credential {
   final bool showPasswordMonouso;
   final bool showNote;
 
-  // New fields for logo state
+  // logo state
   final int? selectedColorValue;
   final String? customSymbol;
   final bool applyColorToEmoji;
   final String? faviconUrl;
+
+  // **qui la nuova lista dei campi aggiunti**
+  final List<CustomField> customFields;
 
   Credential({
     required this.titolo,
@@ -34,5 +66,6 @@ class Credential {
     this.customSymbol,
     this.applyColorToEmoji = false,
     this.faviconUrl,
+    this.customFields = const [],
   });
 }

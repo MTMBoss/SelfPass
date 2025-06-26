@@ -1,8 +1,10 @@
 // lib/pages/Tutti/tutti.dart
+
 import 'package:flutter/material.dart';
 import 'package:selfpass/models/credential.dart';
 import 'package:selfpass/models/credential_store.dart';
-import 'package:selfpass/pages/Tutti/moduli/account_web/credential_detail_page.dart';
+// Import relativo alla DetailPage
+import 'moduli/account_web/credential_detail_page.dart';
 
 class TuttiPage extends StatefulWidget {
   const TuttiPage({super.key});
@@ -18,35 +20,28 @@ class _TuttiPageState extends State<TuttiPage> {
   @override
   void initState() {
     super.initState();
+    _loadCredentials();
+    CredentialStore().addListener(_loadCredentials);
+  }
+
+  void _loadCredentials() {
     credentials = CredentialStore().credentials;
-    CredentialStore().addListener(_onCredentialsChanged);
-    for (int i = 0; i < credentials.length; i++) {
+    _titleControllers
+      ..forEach((_, ctrl) => ctrl.dispose())
+      ..clear();
+    for (var i = 0; i < credentials.length; i++) {
       _titleControllers[i] = TextEditingController(text: credentials[i].titolo);
     }
+    setState(() {});
   }
 
   @override
   void dispose() {
-    CredentialStore().removeListener(_onCredentialsChanged);
-    for (final c in _titleControllers.values) {
-      c.dispose();
+    CredentialStore().removeListener(_loadCredentials);
+    for (var ctrl in _titleControllers.values) {
+      ctrl.dispose();
     }
     super.dispose();
-  }
-
-  void _onCredentialsChanged() {
-    setState(() {
-      credentials = CredentialStore().credentials;
-      for (int i = 0; i < credentials.length; i++) {
-        if (!_titleControllers.containsKey(i)) {
-          _titleControllers[i] = TextEditingController(
-            text: credentials[i].titolo,
-          );
-        } else {
-          _titleControllers[i]!.text = credentials[i].titolo;
-        }
-      }
-    });
   }
 
   @override
@@ -54,91 +49,86 @@ class _TuttiPageState extends State<TuttiPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Tutti')),
       body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         itemCount: credentials.length,
         itemBuilder: (context, index) {
-          final credential = credentials[index];
-          final titleController = _titleControllers[index]!;
+          final cred = credentials[index];
+          final titleCtrl = _titleControllers[index]!;
 
           return Card(
-            margin: const EdgeInsets.only(bottom: 12.0),
+            margin: const EdgeInsets.only(bottom: 12),
             child: ListTile(
-              leading: Builder(
-                builder: (context) {
-                  // 1) custom emoji
-                  if (credential.customSymbol != null) {
-                    if (credential.applyColorToEmoji) {
-                      final color =
-                          credential.selectedColorValue != null
-                              ? Color(credential.selectedColorValue!)
-                              : Colors.black;
-                      return ShaderMask(
-                        blendMode: BlendMode.srcIn,
-                        shaderCallback:
-                            (bounds) => LinearGradient(
-                              colors: [color, color],
-                            ).createShader(bounds),
-                        child: Text(
-                          credential.customSymbol!,
-                          style: const TextStyle(fontSize: 24),
-                        ),
-                      );
-                    } else {
-                      return Text(
-                        credential.customSymbol!,
-                        style: const TextStyle(fontSize: 24),
-                      );
-                    }
-                  }
-                  // 2) saved favicon
-                  if (credential.faviconUrl != null &&
-                      credential.faviconUrl!.isNotEmpty) {
-                    return Image.network(
-                      credential.faviconUrl!,
-                      width: 24,
-                      height: 24,
-                      errorBuilder: (context, error, stackTrace) {
-                        final bg =
-                            credential.selectedColorValue != null
-                                ? Color(credential.selectedColorValue!)
-                                : Colors.black;
-                        return CircleAvatar(radius: 12, backgroundColor: bg);
-                      },
-                    );
-                  }
-                  // 3) colored circle
-                  final bgColor =
-                      credential.selectedColorValue != null
-                          ? Color(credential.selectedColorValue!)
-                          : Colors.black;
-                  return CircleAvatar(radius: 12, backgroundColor: bgColor);
-                },
-              ),
+              leading: _buildIcon(cred),
               title: Text(
-                titleController.text,
+                titleCtrl.text,
                 style: Theme.of(context).textTheme.titleMedium,
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle:
-                  credential.login.isNotEmpty
+                  cred.login.isNotEmpty
                       ? Text(
-                        credential.login,
+                        cred.login,
                         style: Theme.of(context).textTheme.bodySmall,
                       )
                       : null,
-              onTap: () {
-                Navigator.of(context).push(
+              onTap: () async {
+                final updated = await Navigator.of(context).push<Credential>(
                   MaterialPageRoute(
                     builder:
-                        (context) =>
-                            CredentialDetailPage(credential: credential),
+                        (_) => CredentialDetailPage(initialCredential: cred),
                   ),
                 );
+                if (updated != null) {
+                  // aggiorna lista e titolo in place
+                  credentials[index] = updated;
+                  titleCtrl.text = updated.titolo;
+                }
               },
             ),
           );
         },
       ),
     );
+  }
+
+  Widget _buildIcon(Credential cred) {
+    // custom symbol
+    if (cred.customSymbol?.isNotEmpty == true) {
+      if (cred.applyColorToEmoji) {
+        final col =
+            cred.selectedColorValue != null
+                ? Color(cred.selectedColorValue!)
+                : Colors.black;
+        return ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback:
+              (bounds) =>
+                  LinearGradient(colors: [col, col]).createShader(bounds),
+          child: Text(cred.customSymbol!, style: const TextStyle(fontSize: 24)),
+        );
+      }
+      return Text(cred.customSymbol!, style: const TextStyle(fontSize: 24));
+    }
+    // favicon
+    if (cred.faviconUrl?.isNotEmpty == true) {
+      return Image.network(
+        cred.faviconUrl!,
+        width: 24,
+        height: 24,
+        errorBuilder: (_, __, ___) {
+          final bg =
+              cred.selectedColorValue != null
+                  ? Color(cred.selectedColorValue!)
+                  : Colors.black;
+          return CircleAvatar(radius: 12, backgroundColor: bg);
+        },
+      );
+    }
+    // fallback: colored circle
+    final bg =
+        cred.selectedColorValue != null
+            ? Color(cred.selectedColorValue!)
+            : Colors.black;
+    return CircleAvatar(radius: 12, backgroundColor: bg);
   }
 }
