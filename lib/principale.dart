@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Widget> get _pages => <Widget>[
     TuttiPage(searchQuery: _searchQuery),
-    const PreferitiPage(),
+    PreferitiPage(searchQuery: _searchQuery),
     const BigliettiPage(),
     const ImpostazioniPage(),
   ];

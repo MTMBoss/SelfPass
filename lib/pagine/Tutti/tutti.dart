@@ -122,7 +122,6 @@ class _TuttiPageState extends State<TuttiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tutti')),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: filteredCredentials.length,
@@ -152,6 +151,18 @@ class _TuttiPageState extends State<TuttiPage> {
                         ),
                       )
                       : null,
+              trailing: IconButton(
+                icon: Icon(
+                  cred.isFavorite ? Icons.star : Icons.star_border,
+                  color: cred.isFavorite ? Colors.amber : null,
+                ),
+                onPressed: () {
+                  final updatedCred = cred.copyWith(
+                    isFavorite: !cred.isFavorite,
+                  );
+                  CredentialStore().updateCredential(cred, updatedCred);
+                },
+              ),
               onTap: () async {
                 final updated = await Navigator.of(context).push<Credential>(
                   MaterialPageRoute(

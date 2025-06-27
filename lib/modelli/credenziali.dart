@@ -1,5 +1,3 @@
-// lib/models/credential.dart
-
 import 'package:flutter/foundation.dart';
 
 /// identifica il tipo di campo
@@ -50,6 +48,9 @@ class Credential {
   // **qui la nuova lista dei campi aggiunti**
   final List<CustomField> customFields;
 
+  // New property for favorite state
+  final bool isFavorite;
+
   Credential({
     required this.titolo,
     required this.login,
@@ -67,5 +68,47 @@ class Credential {
     this.applyColorToEmoji = false,
     this.faviconUrl,
     this.customFields = const [],
+    this.isFavorite = false,
   });
+
+  // Add a copyWith method to facilitate updating isFavorite
+  Credential copyWith({
+    String? titolo,
+    String? login,
+    String? password,
+    String? sitoWeb,
+    String? passwordMonouso,
+    String? note,
+    bool? showLogin,
+    bool? showPassword,
+    bool? showSitoWeb,
+    bool? showPasswordMonouso,
+    bool? showNote,
+    int? selectedColorValue,
+    String? customSymbol,
+    bool? applyColorToEmoji,
+    String? faviconUrl,
+    List<CustomField>? customFields,
+    bool? isFavorite,
+  }) {
+    return Credential(
+      titolo: titolo ?? this.titolo,
+      login: login ?? this.login,
+      password: password ?? this.password,
+      sitoWeb: sitoWeb ?? this.sitoWeb,
+      passwordMonouso: passwordMonouso ?? this.passwordMonouso,
+      note: note ?? this.note,
+      showLogin: showLogin ?? this.showLogin,
+      showPassword: showPassword ?? this.showPassword,
+      showSitoWeb: showSitoWeb ?? this.showSitoWeb,
+      showPasswordMonouso: showPasswordMonouso ?? this.showPasswordMonouso,
+      showNote: showNote ?? this.showNote,
+      selectedColorValue: selectedColorValue ?? this.selectedColorValue,
+      customSymbol: customSymbol ?? this.customSymbol,
+      applyColorToEmoji: applyColorToEmoji ?? this.applyColorToEmoji,
+      faviconUrl: faviconUrl ?? this.faviconUrl,
+      customFields: customFields ?? this.customFields,
+      isFavorite: isFavorite ?? this.isFavorite,
+    );
+  }
 }
