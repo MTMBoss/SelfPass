@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:selfpass/models/credential_store.dart';
-import 'package:selfpass/models/credential.dart';
+import 'package:selfpass/modelli/archivio_credenziali.dart';
+import 'package:selfpass/modelli/credenziali.dart';
 import 'campo_testo_custom.dart';
 
 class LoginCampo extends StatefulWidget {

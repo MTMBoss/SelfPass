@@ -1,13 +1,14 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'pages/Tutti/tutti.dart';
-import 'pages/preferiti.dart';
-import 'pages/biglietti.dart';
-import 'pages/impostazioni.dart';
-import 'theme.dart';
+import 'pagine/Tutti/tutti.dart';
+import 'pagine/preferiti.dart';
+import 'pagine/biglietti.dart';
+import 'pagine/impostazioni.dart';
+import 'tema.dart';
 import 'widgets/menu.dart';
 import 'widgets/drawer.dart';
 import 'widgets/fab_menu.dart';
+import 'widgets/cerca.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,12 +38,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  String _searchQuery = '';
 
-  static const List<Widget> _pages = <Widget>[
-    TuttiPage(),
-    PreferitiPage(),
-    BigliettiPage(),
-    ImpostazioniPage(),
+  List<Widget> get _pages => <Widget>[
+    TuttiPage(searchQuery: _searchQuery),
+    const PreferitiPage(),
+    const BigliettiPage(),
+    const ImpostazioniPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -62,10 +64,15 @@ class _HomeScreenState extends State<HomeScreen> {
       drawer: const AppDrawer(),
       body: Column(
         children: [
-          // Placeholder for search bar (to be implemented later)
-          Container(
+          Padding(
             padding: const EdgeInsets.all(8.0),
-            child: const Text('Search bar placeholder'),
+            child: Cerca(
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
           ),
           // Expanded to fill remaining space with the selected page content
           Expanded(child: _pages.elementAt(_selectedIndex)),

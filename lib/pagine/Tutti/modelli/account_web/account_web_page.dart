@@ -1,10 +1,10 @@
 // lib/pages/Tutti/moduli/account_web/account_web_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:selfpass/models/credential.dart';
-import 'package:selfpass/models/credential_store.dart';
+import 'package:selfpass/modelli/credenziali.dart';
+import 'package:selfpass/modelli/archivio_credenziali.dart';
 
-import '../../Campi/titolo_campo.dart';
+import '../../Campi/campo_titolo.dart';
 import '../../Campi/campo_app.dart';
 import '../../Campi/campi_normali.dart';
 import '../../Campi/campi_login.dart';
@@ -167,6 +167,20 @@ class _AccountWebPageState extends State<AccountWebPage> {
   }
 
   void _saveCredentials() {
+    // Validate required fields before saving
+    if (_getFirst(FieldType.login).isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Il campo Login è obbligatorio.')),
+      );
+      return;
+    }
+    if (_getFirst(FieldType.password).isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Il campo Password è obbligatorio.')),
+      );
+      return;
+    }
+
     // 1) quali tipi sono “standard”
     // 2) vedremo se abbiamo già incontrato la loro prima occorrenza
     final defaultTypes = <FieldType>{
@@ -225,6 +239,11 @@ class _AccountWebPageState extends State<AccountWebPage> {
       store.addCredential(newCred);
     }
     Navigator.of(context).pop(newCred);
+
+    // Show confirmation snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Credenziali salvate con successo.')),
+    );
   }
 
   TextEditingController? _getControllerOf(FieldType t) {

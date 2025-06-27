@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "selfpass",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/principale.dart"
+        },
+        {
+            "name": "selfpass (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "program": "lib/principale.dart"
+        },
+        {
+            "name": "selfpass (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "program": "lib/principale.dart"
+        }
+    ]
+}

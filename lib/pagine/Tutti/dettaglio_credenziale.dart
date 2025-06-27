@@ -1,8 +1,8 @@
 // lib/pages/Tutti/moduli/account_web/credential_detail_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:selfpass/models/credential.dart';
-import 'account_web_page.dart';
+import 'package:selfpass/modelli/credenziali.dart';
+import 'modelli/account_web/account_web_page.dart';
 
 class CredentialDetailPage extends StatefulWidget {
   final Credential initialCredential;
