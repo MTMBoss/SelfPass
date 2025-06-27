@@ -167,9 +167,36 @@ class _AccountWebPageState extends State<AccountWebPage> {
   }
 
   void _saveCredentials() {
+    // 1) quali tipi sono “standard”
+    // 2) vedremo se abbiamo già incontrato la loro prima occorrenza
+    final defaultTypes = <FieldType>{
+      FieldType.login,
+      FieldType.password,
+      FieldType.sitoWeb,
+      FieldType.passwordMonouso,
+      FieldType.testo,
+    };
+    final seenDefault = <FieldType, bool>{};
+
     final extras = <CustomField>[];
     for (int i = 0; i < _selectedFields.length; i++) {
-      extras.add(CustomField(_selectedFields[i], _controllers[i].text));
+      final type = _selectedFields[i];
+      final value = _controllers[i].text;
+
+      // se è un tipo di default e non ne abbiamo ancora “saltata” la prima occorrenza,
+      // allora lo escludiamo (è quello standard); altrimenti lo includiamo
+      if (defaultTypes.contains(type)) {
+        if (seenDefault[type] == true) {
+          // seconda (o terza...) password → la salvo come custom
+          extras.add(CustomField(type, value));
+        } else {
+          // prima password/login/etc → lo ignoro
+          seenDefault[type] = true;
+        }
+      } else {
+        // ogni tipo non‐default è sempre custom
+        extras.add(CustomField(type, value));
+      }
     }
 
     final newCred = Credential(
@@ -188,7 +215,7 @@ class _AccountWebPageState extends State<AccountWebPage> {
       customSymbol: customSymbol,
       applyColorToEmoji: applyColorToEmoji,
       faviconUrl: faviconUrl,
-      customFields: extras,
+      customFields: extras, // <-- solo custom
     );
 
     final store = CredentialStore();

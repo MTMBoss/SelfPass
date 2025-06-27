@@ -285,7 +285,7 @@ class PasswordCampo extends StatelessWidget {
     super.key,
     required this.controller,
     this.onRemove,
-    this.obscureText = true,
+    this.obscureText = false,
   });
 
   @override
@@ -304,7 +304,7 @@ class PasswordCampo extends StatelessWidget {
         }
       },
       onRemove: onRemove ?? () {},
-      obscureText: obscureText,
+      obscureText: false,
     );
   }
 }
@@ -335,7 +335,7 @@ class PasswordAdminCampo extends StatelessWidget {
         }
       },
       onRemove: onRemove ?? () {},
-      obscureText: true,
+      obscureText: false,
     );
   }
 }
@@ -362,7 +362,7 @@ class PasswordWiFiCampo extends StatelessWidget {
         }
       },
       onRemove: onRemove ?? () {},
-      obscureText: true,
+      obscureText: false,
     );
   }
 }
