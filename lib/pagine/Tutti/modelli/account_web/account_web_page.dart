@@ -12,6 +12,8 @@ import '../../Campi/campi_chiave.dart';
 import '../../Campi/campi_data.dart';
 import '../../Campi/campo_qr.dart';
 
+import 'package:selfpass/widgets/common_appbar.dart';
+
 /// Etichette per ogni FieldType (definito in credential.dart)
 final Map<FieldType, String> fieldNames = {
   FieldType.testo: 'Testo',
@@ -256,12 +258,10 @@ class _AccountWebPageState extends State<AccountWebPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Account Web'),
-        leading: IconButton(
-          icon: const Icon(Icons.check),
-          onPressed: _saveCredentials,
-        ),
+      appBar: CommonAppBar(
+        title: 'Account Web',
+        onSave: _saveCredentials,
+        context: context,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
