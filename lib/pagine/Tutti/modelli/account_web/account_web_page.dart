@@ -11,25 +11,10 @@ import '../../Campi/campi_login.dart';
 import '../../Campi/campi_chiave.dart';
 import '../../Campi/campi_data.dart';
 import '../../Campi/campo_qr.dart';
+import 'aggiungi_campo.dart';
+import 'aggiungi_file_immagine.dart';
 
 import 'package:selfpass/widgets/common_appbar.dart';
-
-/// Etichette per ogni FieldType (definito in credential.dart)
-final Map<FieldType, String> fieldNames = {
-  FieldType.testo: 'Testo',
-  FieldType.numero: 'Numero',
-  FieldType.login: 'Login',
-  FieldType.password: 'Password',
-  FieldType.passwordMonouso: 'Password monouso',
-  FieldType.scadenza: 'Scadenza',
-  FieldType.sitoWeb: 'Sito Web',
-  FieldType.email: 'Email',
-  FieldType.telefono: 'Telefono',
-  FieldType.data: 'Data',
-  FieldType.pin: 'PIN',
-  FieldType.privato: 'Privato',
-  FieldType.applicazione: 'Applicazione',
-};
 
 typedef FieldBuilder =
     Widget Function(TextEditingController controller, VoidCallback onRemove);
@@ -134,31 +119,6 @@ class _AccountWebPageState extends State<AccountWebPage> {
       _controllers[i].dispose();
       _controllers.removeAt(i);
     });
-  }
-
-  Future<void> _showAddFieldMenu() async {
-    final picked = await showModalBottomSheet<FieldType>(
-      context: context,
-      builder:
-          (ctx) => SafeArea(
-            child: ListView(
-              shrinkWrap: true,
-              children:
-                  FieldType.values.map((t) {
-                    return ListTile(
-                      title: Text(fieldNames[t]!),
-                      onTap: () => Navigator.pop(ctx, t),
-                    );
-                  }).toList(),
-            ),
-          ),
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedFields.add(picked);
-        _controllers.add(TextEditingController());
-      });
-    }
   }
 
   String _getFirst(FieldType t) {
@@ -301,10 +261,26 @@ class _AccountWebPageState extends State<AccountWebPage> {
               const SizedBox(height: 12),
             ],
 
-            ElevatedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Aggiungi campo'),
-              onPressed: _showAddFieldMenu,
+            AggiungiCampoButton(
+              parentContext: context,
+              onFieldAdded: (FieldType t) {
+                setState(() {
+                  _selectedFields.add(t);
+                  _controllers.add(TextEditingController());
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            AggiungiImmagineButton(
+              onPressed: () {
+                //
+              },
+            ),
+            const SizedBox(height: 8),
+            AggiungiFileButton(
+              onPressed: () {
+                //
+              },
             ),
           ],
         ),
