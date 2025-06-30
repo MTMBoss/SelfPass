@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:selfpass/modelli/credenziali.dart';
 import 'modelli/account_web/account_web_page.dart';
+import 'dart:io';
+import 'package:open_file/open_file.dart';
 
 class CredentialDetailPage extends StatefulWidget {
   final Credential initialCredential;
@@ -79,6 +81,51 @@ class CredentialDetailPageState extends State<CredentialDetailPage> {
       return s.substring(s.indexOf('.') + 1);
     }
 
+    Widget buildImagePreview() {
+      if (credential.imagePath == null) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder:
+                    (_) =>
+                        FullScreenImagePage(imagePath: credential.imagePath!),
+              ),
+            );
+          },
+          child: Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
+            child: Image.file(File(credential.imagePath!), fit: BoxFit.cover),
+          ),
+        ),
+      );
+    }
+
+    Widget buildFilePreview() {
+      if (credential.filePath == null) return const SizedBox.shrink();
+      final fileName = credential.filePath!.split(Platform.pathSeparator).last;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: GestureDetector(
+          onTap: () {
+            OpenFile.open(credential.filePath!);
+          },
+          child: Text(
+            fileName,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              decoration: TextDecoration.underline,
+              color: Colors.blue,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Dettagli Credential')),
       floatingActionButton: FloatingActionButton(
@@ -128,8 +175,26 @@ class CredentialDetailPageState extends State<CredentialDetailPage> {
             if (credential.customFields.isNotEmpty) const Divider(),
             for (final cf in credential.customFields)
               readOnlyField(labelOf(cf), cf.value),
+            buildImagePreview(),
+            buildFilePreview(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class FullScreenImagePage extends StatelessWidget {
+  final String imagePath;
+
+  const FullScreenImagePage({super.key, required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: InteractiveViewer(child: Image.file(File(imagePath))),
       ),
     );
   }

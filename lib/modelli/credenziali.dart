@@ -51,6 +51,10 @@ class Credential {
   // New property for favorite state
   final bool isFavorite;
 
+  // New properties for image and file paths
+  final String? imagePath;
+  final String? filePath;
+
   Credential({
     required this.titolo,
     required this.login,
@@ -69,6 +73,8 @@ class Credential {
     this.faviconUrl,
     this.customFields = const [],
     this.isFavorite = false,
+    this.imagePath,
+    this.filePath,
   });
 
   // Add a copyWith method to facilitate updating isFavorite
@@ -90,6 +96,8 @@ class Credential {
     String? faviconUrl,
     List<CustomField>? customFields,
     bool? isFavorite,
+    String? imagePath,
+    String? filePath,
   }) {
     return Credential(
       titolo: titolo ?? this.titolo,
@@ -109,6 +117,8 @@ class Credential {
       faviconUrl: faviconUrl ?? this.faviconUrl,
       customFields: customFields ?? this.customFields,
       isFavorite: isFavorite ?? this.isFavorite,
+      imagePath: imagePath ?? this.imagePath,
+      filePath: filePath ?? this.filePath,
     );
   }
 }

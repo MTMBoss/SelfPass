@@ -3,6 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:selfpass/modelli/credenziali.dart';
 import 'package:selfpass/modelli/archivio_credenziali.dart';
+import 'dart:io';
+
+import 'package:open_file/open_file.dart';
 
 import '../../Campi/campo_titolo.dart';
 import '../../Campi/campo_app.dart';
@@ -15,6 +18,7 @@ import 'aggiungi_campo.dart';
 import 'aggiungi_file_immagine.dart';
 
 import 'package:selfpass/widgets/common_appbar.dart';
+import 'package:logger/logger.dart';
 
 typedef FieldBuilder =
     Widget Function(TextEditingController controller, VoidCallback onRemove);
@@ -61,6 +65,10 @@ class _AccountWebPageState extends State<AccountWebPage> {
   final List<FieldType> _selectedFields = [];
   final List<TextEditingController> _controllers = [];
 
+  String? _selectedImagePath;
+  String? _selectedFileName;
+  String? _selectedFilePath;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +83,14 @@ class _AccountWebPageState extends State<AccountWebPage> {
       customSymbol = c.customSymbol;
       applyColorToEmoji = c.applyColorToEmoji;
       faviconUrl = c.faviconUrl;
+      _selectedImagePath = c.imagePath;
+      _selectedFilePath = c.filePath;
+      _selectedFileName = null; // Will set below if filePath exists
+      if (_selectedFilePath != null) {
+        // Extract file name from path
+        _selectedFileName =
+            _selectedFilePath!.split(Platform.pathSeparator).last;
+      }
     }
 
     // Campi standard
@@ -192,6 +208,8 @@ class _AccountWebPageState extends State<AccountWebPage> {
       applyColorToEmoji: applyColorToEmoji,
       faviconUrl: faviconUrl,
       customFields: extras, // <-- solo custom
+      imagePath: _selectedImagePath,
+      filePath: _selectedFilePath,
     );
 
     final store = CredentialStore();
@@ -272,18 +290,92 @@ class _AccountWebPageState extends State<AccountWebPage> {
             ),
             const SizedBox(height: 8),
             AggiungiImmagineButton(
-              onPressed: () {
-                //
+              onImageSelected: (image) {
+                if (image != null) {
+                  final path = (image as dynamic).path;
+                  Logger().i('Selected image path: $path');
+                  setState(() {
+                    _selectedImagePath = path;
+                  });
+                }
               },
             ),
+            if (_selectedImagePath != null) ...[
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder:
+                          (_) => FullScreenImagePage(
+                            imagePath: _selectedImagePath!,
+                          ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                  ),
+                  child: Image.file(
+                    File(_selectedImagePath!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             AggiungiFileButton(
-              onPressed: () {
-                //
+              onFileSelected: (file) {
+                if (file != null) {
+                  final name = (file as dynamic).name;
+                  final path = (file as dynamic).path;
+                  Logger().i('Selected file name: $name');
+                  setState(() {
+                    _selectedFileName = name;
+                    _selectedFilePath = path;
+                  });
+                }
               },
             ),
+            if (_selectedFileName != null) ...[
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  if (_selectedFilePath != null) {
+                    OpenFile.open(_selectedFilePath!);
+                  }
+                },
+                child: Text(
+                  _selectedFileName!,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class FullScreenImagePage extends StatelessWidget {
+  final String imagePath;
+
+  const FullScreenImagePage({super.key, required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: InteractiveViewer(child: Image.file(File(imagePath))),
       ),
     );
   }
