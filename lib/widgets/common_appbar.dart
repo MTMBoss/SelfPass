@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'organizza_campi.dart';
 
 typedef MenuOptionSelected = void Function(String value);
 
@@ -7,18 +6,22 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback onSave;
   final BuildContext context;
+  final VoidCallback? onOrganizzaCampi;
 
   const CommonAppBar({
     super.key,
     required this.title,
     required this.onSave,
     required this.context,
+    this.onOrganizzaCampi,
   });
 
   void _handleMenuOptionSelected(String value) {
     switch (value) {
       case 'organizza':
-        organizeFields(context);
+        if (onOrganizzaCampi != null) {
+          onOrganizzaCampi!();
+        }
         break;
       case 'annulla':
         Navigator.of(context).popUntil((route) => route.isFirst);

@@ -20,6 +20,8 @@ import 'aggiungi_file_immagine.dart';
 import 'package:selfpass/widgets/common_appbar.dart';
 import 'package:logger/logger.dart';
 
+import 'package:selfpass/widgets/organizza_campi.dart';
+
 typedef FieldBuilder =
     Widget Function(TextEditingController controller, VoidCallback onRemove);
 
@@ -240,6 +242,46 @@ class _AccountWebPageState extends State<AccountWebPage> {
         title: 'Account Web',
         onSave: _saveCredentials,
         context: context,
+        onOrganizzaCampi: () async {
+          // costruisci elenco temporaneo di FieldData
+          final fields = <FieldData>[];
+          for (int i = 0; i < _selectedFields.length; i++) {
+            fields.add(
+              FieldData(
+                _selectedFields[i].toString().split('.').last,
+                _controllers[i].text,
+              ),
+            );
+          }
+
+          // apri pagina e attendi nuovo ordine
+          final order = await Navigator.of(context).push<List<int>>(
+            MaterialPageRoute(
+              builder: (_) => OrganizzaCampiPage(fields: fields),
+            ),
+          );
+
+          if (order != null) {
+            setState(() {
+              // ricrea liste nell'ordine indicato, senza dispose
+              final reorderedFields = <FieldType>[];
+              final reorderedCtrls = <TextEditingController>[];
+
+              for (final origIndex in order) {
+                reorderedFields.add(_selectedFields[origIndex]);
+                reorderedCtrls.add(_controllers[origIndex]);
+              }
+
+              _selectedFields
+                ..clear()
+                ..addAll(reorderedFields);
+
+              _controllers
+                ..clear()
+                ..addAll(reorderedCtrls);
+            });
+          }
+        },
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
