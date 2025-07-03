@@ -1,17 +1,6 @@
 import 'package:flutter/material.dart';
+import 'simple_page.dart';
 import '../pagine/Tutti/modelli/account_web/account_web_page.dart';
-import '../pagine/Tutti/modelli/altro/account_email/account_email_page.dart';
-import '../pagine/Tutti/modelli/altro/assicurazione/assicurazione_page.dart';
-import '../pagine/Tutti/modelli/altro/codice/codice_page.dart';
-import '../pagine/Tutti/modelli/altro/conto_bancario/conto_bancario_page.dart';
-import '../pagine/Tutti/modelli/altro/fornitore_servizi_internet/fornitore_servizi_internet_page.dart';
-import '../pagine/Tutti/modelli/altro/iscrizione/iscrizione_page.dart';
-import '../pagine/Tutti/modelli/altro/licenza_software/licenza_software_page.dart';
-import '../pagine/Tutti/modelli/altro/login_password/login_password_page.dart';
-import '../pagine/Tutti/modelli/altro/patente_guida/patente_guida_page.dart';
-import '../pagine/Tutti/modelli/altro/personalizzato/personalizzato_page.dart';
-import '../pagine/Tutti/modelli/altro/previdenza_sociale/previdenza_sociale_page.dart';
-import '../pagine/Tutti/modelli/altro/router_wifi/router_wifi_page.dart';
 import '../pagine/Tutti/modelli/carta_credito/carta_credito_page.dart';
 import '../pagine/Tutti/modelli/password_2fa/password_2fa_page.dart';
 import '../pagine/Tutti/modelli/documento_id/documento_id_page.dart';
@@ -50,58 +39,58 @@ class _FabMenuState extends State<FabMenu> with SingleTickerProviderStateMixin {
     {
       'icon': Icons.shield,
       'title': 'Assicurazione',
-      'page': const AssicurazionePage(),
+      'page': SimplePage('Assicurazione'),
     },
     {
       'icon': Icons.email,
       'title': 'Account Email',
-      'page': const AccountEmailPage(),
+      'page': SimplePage('Account Email'),
     },
-    {'icon': Icons.code, 'title': 'Codice', 'page': const CodicePage()},
+    {'icon': Icons.code, 'title': 'Codice', 'page': SimplePage('Codice')},
     {
       'icon': Icons.account_balance,
       'title': 'Conto Bancario',
-      'page': const ContoBancarioPage(),
+      'page': SimplePage('Conto Bancario'),
     },
     {
       'icon': Icons.wifi,
       'title': 'Fornitore dei servizi Internet',
-      'page': const FornitoreServiziInternetPage(),
+      'page': SimplePage('Fornitore dei servizi Internet'),
     },
     {
       'icon': Icons.app_registration,
       'title': 'Iscrizione',
-      'page': const IscrizionePage(),
+      'page': SimplePage('Iscrizione'),
     },
     {
       'icon': Icons.vpn_key,
       'title': 'Licenza Software',
-      'page': const LicenzaSoftwarePage(),
+      'page': SimplePage('Licenza Software'),
     },
     {
       'icon': Icons.login,
       'title': 'Login/password',
-      'page': const LoginPasswordPage(),
+      'page': SimplePage('Login/password'),
     },
     {
       'icon': Icons.drive_eta,
       'title': 'Patente di guida',
-      'page': const PatenteGuidaPage(),
+      'page': SimplePage('Patente di guida'),
     },
     {
       'icon': Icons.verified_user,
       'title': 'Previdenza Sociale',
-      'page': const PrevidenzaSocialePage(),
+      'page': SimplePage('Previdenza Sociale'),
     },
     {
       'icon': Icons.router,
       'title': 'Router Wi-Fi',
-      'page': const RouterWifiPage(),
+      'page': SimplePage('Router Wi-Fi'),
     },
     {
       'icon': Icons.person,
       'title': 'Personalizzato',
-      'page': const PersonalizzatoPage(),
+      'page': SimplePage('Personalizzato'),
     },
   ];
 

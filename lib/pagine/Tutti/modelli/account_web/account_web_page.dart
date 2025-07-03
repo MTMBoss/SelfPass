@@ -9,9 +9,8 @@ import 'package:open_file/open_file.dart';
 
 import '../../Campi/campo_titolo.dart';
 import '../../Campi/campo_app.dart';
-import '../../Campi/campi_normali.dart';
+import '../../Campi/campo_testo_custom.dart';
 import '../../Campi/campi_login.dart';
-import '../../Campi/campi_chiave.dart';
 import '../../Campi/campi_data.dart';
 import '../../Campi/campo_qr.dart';
 import 'aggiungi_campo.dart';
@@ -26,19 +25,43 @@ typedef FieldBuilder =
     Widget Function(TextEditingController controller, VoidCallback onRemove);
 
 final Map<FieldType, FieldBuilder> fieldBuilders = {
-  FieldType.testo: (c, rm) => TestoCampo(controller: c, onRemove: rm),
-  FieldType.numero: (c, rm) => NumeroCampo(controller: c, onRemove: rm),
+  FieldType.testo:
+      (c, rm) => CampoTestoCustom(label: 'Testo', controller: c, onRemove: rm),
+  FieldType.numero:
+      (c, rm) => CampoTestoCustom(label: 'Numero', controller: c, onRemove: rm),
   FieldType.login: (c, rm) => LoginCampo(controller: c, onRemove: rm),
-  FieldType.password: (c, rm) => PasswordCampo(controller: c, onRemove: rm),
+  FieldType.password:
+      (c, rm) => CampoTestoCustom(
+        controller: c,
+        onRemove: rm,
+        label: 'Password',
+        passwordGenerator: true,
+      ),
   FieldType.passwordMonouso:
       (c, rm) => PasswordMonousoCampo(controller: c, onRemove: rm),
   FieldType.scadenza: (c, rm) => ScadenzaCampo(controller: c, onRemove: rm),
-  FieldType.sitoWeb: (c, rm) => SitoWebCampo(controller: c, onRemove: rm),
+  FieldType.sitoWeb:
+      (c, rm) =>
+          CampoTestoCustom(label: 'Sito Web', controller: c, onRemove: rm),
   FieldType.email: (c, rm) => EmailCampo(controller: c, onRemove: rm),
-  FieldType.telefono: (c, rm) => TelefonoCampo(controller: c, onRemove: rm),
+  FieldType.telefono:
+      (c, rm) =>
+          CampoTestoCustom(label: 'Telefono', controller: c, onRemove: rm),
   FieldType.data: (c, rm) => DataCampo(controller: c, onRemove: rm),
-  FieldType.pin: (c, rm) => PinCampo(controller: c, onRemove: rm),
-  FieldType.privato: (c, rm) => PrivatoCampo(controller: c, onRemove: rm),
+  FieldType.pin:
+      (c, rm) => CampoTestoCustom(
+        label: 'PIN',
+        controller: c,
+        onRemove: rm,
+        obscureText: true,
+      ),
+  FieldType.privato:
+      (c, rm) => CampoTestoCustom(
+        label: 'Privato',
+        controller: c,
+        onRemove: rm,
+        obscureText: true,
+      ),
   FieldType.applicazione:
       (c, rm) => Row(
         children: [
