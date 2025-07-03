@@ -243,44 +243,33 @@ class _AccountWebPageState extends State<AccountWebPage> {
         onSave: _saveCredentials,
         context: context,
         onOrganizzaCampi: () async {
-          // costruisci elenco temporaneo di FieldData
+          // costruisco la lista di FieldData con tipo+valore
           final fields = <FieldData>[];
           for (int i = 0; i < _selectedFields.length; i++) {
-            fields.add(
-              FieldData(
-                _selectedFields[i].toString().split('.').last,
-                _controllers[i].text,
-              ),
-            );
+            fields.add(FieldData(_selectedFields[i], _controllers[i].text));
           }
 
-          // apri pagina e attendi nuovo ordine
-          final order = await Navigator.of(context).push<List<int>>(
+          // apro OrganizzaCampiPage e aspetto il risultato
+          final reordered = await Navigator.of(context).push<List<FieldData>>(
             MaterialPageRoute(
               builder: (_) => OrganizzaCampiPage(fields: fields),
             ),
           );
+          if (reordered == null) return;
 
-          if (order != null) {
-            setState(() {
-              // ricrea liste nell'ordine indicato, senza dispose
-              final reorderedFields = <FieldType>[];
-              final reorderedCtrls = <TextEditingController>[];
+          // ricostruisco _selectedFields e _controllers secondo l'ordine e i valori ritornati
+          setState(() {
+            _selectedFields.clear();
+            for (final ctrl in _controllers) {
+              ctrl.dispose();
+            }
+            _controllers.clear();
 
-              for (final origIndex in order) {
-                reorderedFields.add(_selectedFields[origIndex]);
-                reorderedCtrls.add(_controllers[origIndex]);
-              }
-
-              _selectedFields
-                ..clear()
-                ..addAll(reorderedFields);
-
-              _controllers
-                ..clear()
-                ..addAll(reorderedCtrls);
-            });
-          }
+            for (var fd in reordered) {
+              _selectedFields.add(fd.type);
+              _controllers.add(TextEditingController(text: fd.value));
+            }
+          });
         },
       ),
       body: Padding(
