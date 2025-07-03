@@ -3,6 +3,7 @@ import 'package:selfpass/modelli/credenziali.dart';
 import 'package:selfpass/modelli/archivio_credenziali.dart';
 
 import 'package:selfpass/widgets/highlight_text.dart';
+import 'package:selfpass/widgets/credential_icon.dart';
 
 class PreferitiPage extends StatefulWidget {
   final String searchQuery;
@@ -71,7 +72,7 @@ class _PreferitiPageState extends State<PreferitiPage> {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            leading: _buildIcon(cred),
+            leading: CredentialIcon(cred),
             title: HighlightText(
               source: cred.titolo,
               query: widget.searchQuery,
@@ -89,46 +90,5 @@ class _PreferitiPageState extends State<PreferitiPage> {
         );
       },
     );
-  }
-
-  Widget _buildIcon(Credential cred) {
-    // custom symbol
-    if (cred.customSymbol?.isNotEmpty == true) {
-      if (cred.applyColorToEmoji) {
-        final col =
-            cred.selectedColorValue != null
-                ? Color(cred.selectedColorValue!)
-                : Colors.black;
-        return ShaderMask(
-          blendMode: BlendMode.srcIn,
-          shaderCallback:
-              (bounds) =>
-                  LinearGradient(colors: [col, col]).createShader(bounds),
-          child: Text(cred.customSymbol!, style: const TextStyle(fontSize: 24)),
-        );
-      }
-      return Text(cred.customSymbol!, style: const TextStyle(fontSize: 24));
-    }
-    // favicon
-    if (cred.faviconUrl?.isNotEmpty == true) {
-      return Image.network(
-        cred.faviconUrl!,
-        width: 24,
-        height: 24,
-        errorBuilder: (_, __, ___) {
-          final bg =
-              cred.selectedColorValue != null
-                  ? Color(cred.selectedColorValue!)
-                  : Colors.black;
-          return CircleAvatar(radius: 12, backgroundColor: bg);
-        },
-      );
-    }
-    // fallback: colored circle
-    final bg =
-        cred.selectedColorValue != null
-            ? Color(cred.selectedColorValue!)
-            : Colors.black;
-    return CircleAvatar(radius: 12, backgroundColor: bg);
   }
 }

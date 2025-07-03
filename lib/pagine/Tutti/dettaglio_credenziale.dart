@@ -5,6 +5,7 @@ import 'package:selfpass/modelli/credenziali.dart';
 import 'modelli/account_web/account_web_page.dart';
 import 'dart:io';
 import 'package:open_file/open_file.dart';
+import 'package:selfpass/widgets/credential_icon.dart';
 
 class CredentialDetailPage extends StatefulWidget {
   final Credential initialCredential;
@@ -26,42 +27,6 @@ class CredentialDetailPageState extends State<CredentialDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        credential.selectedColorValue != null
-            ? Color(credential.selectedColorValue!)
-            : Colors.black;
-
-    Widget buildIcon() {
-      if (credential.customSymbol?.isNotEmpty == true) {
-        if (credential.applyColorToEmoji) {
-          return ShaderMask(
-            blendMode: BlendMode.srcIn,
-            shaderCallback:
-                (bounds) =>
-                    LinearGradient(colors: [color, color]).createShader(bounds),
-            child: Text(
-              credential.customSymbol!,
-              style: const TextStyle(fontSize: 32),
-            ),
-          );
-        }
-        return Text(
-          credential.customSymbol!,
-          style: const TextStyle(fontSize: 32),
-        );
-      }
-      if (credential.faviconUrl?.isNotEmpty == true) {
-        return Image.network(
-          credential.faviconUrl!,
-          width: 32,
-          height: 32,
-          errorBuilder:
-              (_, __, ___) => CircleAvatar(radius: 16, backgroundColor: color),
-        );
-      }
-      return CircleAvatar(radius: 16, backgroundColor: color);
-    }
-
     Widget readOnlyField(String label, String value) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -158,7 +123,7 @@ class CredentialDetailPageState extends State<CredentialDetailPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  buildIcon(),
+                  CredentialIcon(credential, size: 32),
                 ],
               ),
             const SizedBox(height: 16),
