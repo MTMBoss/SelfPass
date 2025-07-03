@@ -70,6 +70,20 @@ class _TitoloCampoState extends State<TitoloCampo> {
   }
 
   @override
+  void didUpdateWidget(covariant TitoloCampo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Se il controller di Sito Web è cambiato, rimontiamo il listener
+    if (oldWidget.sitoWebController != widget.sitoWebController) {
+      oldWidget.sitoWebController?.removeListener(_onUrlChanged);
+      widget.sitoWebController?.addListener(_onUrlChanged);
+
+      // Forziamo subito una nuova fetch della favicon
+      _onUrlChanged();
+    }
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     if (widget.sitoWebController != null) {
@@ -79,6 +93,9 @@ class _TitoloCampoState extends State<TitoloCampo> {
   }
 
   void _onUrlChanged() {
+    final controller = widget.sitoWebController;
+    if (controller == null) return;
+
     // reset immediato di simbolo e colore
     setState(() {
       customSymbol = null;
@@ -93,7 +110,7 @@ class _TitoloCampoState extends State<TitoloCampo> {
     // debounce favicon
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      final text = widget.sitoWebController!.text.trim();
+      final text = controller.text.trim();
       if (text.contains('.') && text.length > 3) {
         Uri? uri = Uri.tryParse(text);
         if (uri != null && !uri.hasScheme) {
@@ -289,6 +306,8 @@ class _TitoloCampoState extends State<TitoloCampo> {
           widget.onSelectedColorChanged(Colors.black);
           widget.onFaviconUrlChanged('');
         });
+        // Chiamiamo subito la logica che calcola favicon da URL
+        _onUrlChanged();
         break;
       case 'symbol':
         await _selectSymbol();
