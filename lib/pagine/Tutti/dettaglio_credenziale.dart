@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:selfpass/utils/file_utils.dart';
 import 'package:open_file/open_file.dart';
 import 'package:selfpass/widgets/credential_icon.dart';
+import 'package:selfpass/pagine/Tutti/Campi/totp_code_display.dart';
 
 class CredentialDetailPage extends StatefulWidget {
   final Credential initialCredential;
@@ -134,7 +135,7 @@ class CredentialDetailPageState extends State<CredentialDetailPage> {
             if (credential.sitoWeb.isNotEmpty)
               readOnlyField('Sito Web', credential.sitoWeb),
             if (credential.passwordMonouso.isNotEmpty)
-              readOnlyField('Password Monouso', credential.passwordMonouso),
+              TotpCodeDisplay(credential.passwordMonouso),
             if (credential.note.isNotEmpty)
               readOnlyField('Note', credential.note),
             if (credential.customFields.isNotEmpty) const Divider(),
