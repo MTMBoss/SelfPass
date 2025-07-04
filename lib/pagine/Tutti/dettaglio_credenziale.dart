@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:selfpass/modelli/credenziali.dart';
 import 'modelli/account_web/account_web_page.dart';
 import 'dart:io';
+import 'package:selfpass/utils/file_utils.dart';
 import 'package:open_file/open_file.dart';
 import 'package:selfpass/widgets/credential_icon.dart';
 
@@ -72,7 +73,6 @@ class CredentialDetailPageState extends State<CredentialDetailPage> {
 
     Widget buildFilePreview() {
       if (credential.filePath == null) return const SizedBox.shrink();
-      final fileName = credential.filePath!.split(Platform.pathSeparator).last;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: GestureDetector(
@@ -80,7 +80,7 @@ class CredentialDetailPageState extends State<CredentialDetailPage> {
             OpenFile.open(credential.filePath!);
           },
           child: Text(
-            fileName,
+            basename(credential.filePath!),
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               decoration: TextDecoration.underline,

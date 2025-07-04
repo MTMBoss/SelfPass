@@ -5,6 +5,8 @@ import 'package:selfpass/modelli/credenziali.dart';
 import 'package:selfpass/modelli/archivio_credenziali.dart';
 import 'dart:io';
 
+import 'package:selfpass/utils/file_utils.dart';
+
 import 'package:open_file/open_file.dart';
 
 import '../../Campi/campo_titolo.dart';
@@ -113,8 +115,7 @@ class _AccountWebPageState extends State<AccountWebPage> {
       _selectedFileName = null; // Will set below if filePath exists
       if (_selectedFilePath != null) {
         // Extract file name from path
-        _selectedFileName =
-            _selectedFilePath!.split(Platform.pathSeparator).last;
+        _selectedFileName = basename(_selectedFilePath!);
       }
     }
 
