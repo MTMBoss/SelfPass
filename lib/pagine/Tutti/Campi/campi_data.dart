@@ -7,6 +7,21 @@ class ScadenzaCampo extends StatelessWidget {
 
   const ScadenzaCampo({super.key, required this.controller, this.onRemove});
 
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      controller.text =
+          "${picked.day.toString().padLeft(2, '0')}/"
+          "${picked.month.toString().padLeft(2, '0')}/"
+          "${picked.year}";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CampoTestoCustom(
@@ -14,6 +29,8 @@ class ScadenzaCampo extends StatelessWidget {
       controller: controller,
       onRemove: onRemove ?? () {},
       obscureText: false,
+      icon: Icons.calendar_today,
+      onIconPressed: () => _selectDate(context),
     );
   }
 }
